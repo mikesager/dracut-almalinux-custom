@@ -1,0 +1,26 @@
+From c787ad30ab5467c9f3c740a1cd7ed8b3198b9719 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Tue, 21 May 2019 17:58:38 +0200
+Subject: [PATCH] net-lib: strstr is not for globs
+
+(cherry picked from commit 1a3dcc8b46c967445794e679280a3fb3b8e77ae0)
+
+Resolves: #1712469
+---
+ modules.d/40network/net-lib.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/40network/net-lib.sh b/modules.d/40network/net-lib.sh
+index 1e7f1b33..7b93f25e 100755
+--- a/modules.d/40network/net-lib.sh
++++ b/modules.d/40network/net-lib.sh
+@@ -463,7 +463,7 @@ ip_to_var() {
+         #         ip=<ipv4-address> means anaconda-style static config argument cluster
+         autoconf="$1"
+ 
+-        if strstr "$autoconf" "*.*.*.*"; then
++        if strglob "$autoconf" "*.*.*.*"; then
+             # ip=<ipv4-address> means anaconda-style static config argument cluster:
+             # ip=<ip> gateway=<gw> netmask=<nm> hostname=<host> mtu=<mtu>
+             # ksdevice={link|bootif|ibft|<MAC>|<ifname>}
+

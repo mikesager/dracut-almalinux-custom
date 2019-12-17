@@ -1,0 +1,51 @@
+From a1435c3d535707f1d21aaf85e62175ff2bb1ad2b Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Thu, 14 Mar 2019 18:54:10 +0800
+Subject: [PATCH] fips: ensure fs module for /boot is installed
+
+When using dracut with  --hostonly and --no-hostonly-default-device,
+/boot will be inaccessible as dracut will most fs modules unless
+specified. But FIPS require /boot to be accessible, and it will try
+to mount it on boot. It will fail if corresponding fs module is missing.
+
+For most case /boot will be a simple partition, include the fs module
+will be enough for FIPS to mount it. For other cases users have to pass
+extra parameters by themselves.
+
+Suggested-by: Kenneth Dsouza <kdsouza@redhat.com>
+Signed-off-by: Kairui Song <kasong@redhat.com>
+---
+ modules.d/01fips/module-setup.sh | 12 +++++++++++-
+ 1 file changed, 11 insertions(+), 1 deletion(-)
+
+diff --git a/modules.d/01fips/module-setup.sh b/modules.d/01fips/module-setup.sh
+index 18186d62..89734a09 100755
+--- a/modules.d/01fips/module-setup.sh
++++ b/modules.d/01fips/module-setup.sh
+@@ -12,7 +12,7 @@ depends() {
+ 
+ # called by dracut
+ installkernel() {
+-    local _fipsmodules _mod
++    local _fipsmodules _mod _bootfstype
+     if [[ -f "${srcmods}/modules.fips" ]]; then
+         _fipsmodules="$(cat "${srcmods}/modules.fips")"
+     else
+@@ -47,6 +47,16 @@ installkernel() {
+             echo "blacklist $_mod" >> "${initdir}/etc/modprobe.d/fips.conf"
+         fi
+     done
++
++    # with hostonly_default_device fs module for /boot is not installed by default
++    if [[ $hostonly ]] && [[ "$hostonly_default_device" == "no" ]]; then
++        _bootfstype=$(find_mp_fstype /boot)
++        if [[ -n "$_bootfstype" ]]; then
++            hostonly='' instmods $_bootfstype
++        else
++            dwarning "Can't determine fs type for /boot, FIPS check may fail."
++        fi
++    fi
+ }
+ 
+ # called by dracut
+

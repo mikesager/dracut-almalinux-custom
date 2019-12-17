@@ -1,0 +1,36 @@
+From 17cd55169c3549d85ba3e4d7e0e81c496d1b2940 Mon Sep 17 00:00:00 2001
+From: Lianbo Jiang <lijiang@redhat.com>
+Date: Mon, 13 May 2019 16:09:25 +0800
+Subject: [PATCH] 99base: enable the initqueue in both 'dracut --add-device'
+ and 'dracut --mount' cases.
+
+The commit 9f3c31cd8d68 ("99base: enable initqueue if extra devices are added")
+only covers 'dracut --add-device' case, but it did not cover 'dracut --mount'
+case, which causes the kdump failure in the Amazon virtual machine.
+
+Lets make sure that the initqueue is enabled in both cases in order to wake up
+the device in time.
+
+Reported-by: Xiao Liang <xiliang@redhat.com>
+Signed-off-by: Lianbo Jiang <lijiang@redhat.com>
+(cherry picked from commit e0fc62f619ba55a96179382e22f7665e969c3d42)
+
+Resolves: #1678094
+---
+ modules.d/99base/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/99base/module-setup.sh b/modules.d/99base/module-setup.sh
+index 21523fc9..c9ead01d 100755
+--- a/modules.d/99base/module-setup.sh
++++ b/modules.d/99base/module-setup.sh
+@@ -93,7 +93,7 @@ install() {
+ 
+     ## save host_devs which we need bring up
+     if [[ $hostonly_cmdline == "yes" ]]; then
+-        if [[ -n $add_device ]]; then
++        if [[ -n "${host_devs[@]}" ]]; then
+             dracut_need_initqueue
+         fi
+         if [[ -f "$initdir/lib/dracut/need-initqueue" ]] || ! dracut_module_included "systemd"; then
+

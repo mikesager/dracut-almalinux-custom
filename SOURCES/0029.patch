@@ -1,0 +1,26 @@
+From d07e4025e05de0461444c196102020919cdb5c2d Mon Sep 17 00:00:00 2001
+From: Jonathan Lebon <jonathan@jlebon.com>
+Date: Tue, 29 Oct 2019 16:53:00 -0400
+Subject: [PATCH] 01fips: add / in BOOT_IMAGE_HMAC filename for clarity
+
+It's already the case the `BOOT_IMAGE_PATH` today, in the non-empty
+case, includes a trailing `/`, but let's add it to the path we build
+here too to make it more obvious.
+---
+ modules.d/01fips/fips.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/01fips/fips.sh b/modules.d/01fips/fips.sh
+index 893143d0..de2755b0 100755
+--- a/modules.d/01fips/fips.sh
++++ b/modules.d/01fips/fips.sh
+@@ -129,7 +129,7 @@ do_fips()
+             fi
+         fi
+ 
+-        BOOT_IMAGE_HMAC="/boot/${BOOT_IMAGE_PATH}.${BOOT_IMAGE_NAME}.hmac"
++        BOOT_IMAGE_HMAC="/boot/${BOOT_IMAGE_PATH}/.${BOOT_IMAGE_NAME}.hmac"
+         if ! [ -e "${BOOT_IMAGE_HMAC}" ]; then
+             warn "${BOOT_IMAGE_HMAC} does not exist"
+             return 1
+

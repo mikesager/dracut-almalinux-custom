@@ -1,0 +1,24 @@
+From 4971a2c4eb4526cb88a5c9aff30c57527a746036 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Tue, 16 Jul 2019 08:27:01 +0100
+Subject: [PATCH] 01fips: add cfb cipher
+
+Required by FIPS standard
+---
+ modules.d/01fips/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/01fips/module-setup.sh b/modules.d/01fips/module-setup.sh
+index 89734a09..f011f15d 100755
+--- a/modules.d/01fips/module-setup.sh
++++ b/modules.d/01fips/module-setup.sh
+@@ -24,7 +24,7 @@ installkernel() {
+         _fipsmodules+="crc32c crct10dif ghash "
+ 
+         # Ciphers:
+-        _fipsmodules+="cipher_null des3_ede aes "
++        _fipsmodules+="cipher_null des3_ede aes cfb "
+ 
+         # Modes/templates:
+         _fipsmodules+="ecb cbc ctr xts gcm ccm authenc hmac cmac "
+

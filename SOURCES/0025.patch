@@ -1,0 +1,26 @@
+From 3464297288b50a062e1094e57d46ad21e51b351b Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Tue, 6 Aug 2019 10:54:09 +0200
+Subject: [PATCH] net-lib: fix typo $li -> $_li
+
+(cherry picked from commit cd97d8d2c0646b95aee47efd5eee39f29d617a67)
+
+Resolves: #1625042
+---
+ modules.d/40network/net-lib.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/40network/net-lib.sh b/modules.d/40network/net-lib.sh
+index f9569573..ad78d225 100755
+--- a/modules.d/40network/net-lib.sh
++++ b/modules.d/40network/net-lib.sh
+@@ -748,7 +748,7 @@ iface_has_link() {
+ iface_is_enslaved() {
+     local _li
+     _li=$(ip -o link show dev $1)
+-    strstr "$li" " master " || return 1
++    strstr "$_li" " master " || return 1
+     return 0
+ }
+ 
+

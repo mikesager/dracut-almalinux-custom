@@ -1,0 +1,86 @@
+From 9c54932f590fd7accadc780c6ee946a94286b7e6 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Tue, 14 May 2019 09:23:55 +0200
+Subject: [PATCH] fips: split loading the crypto modules and checking the
+ kernel
+
+In e54ab383 we moved the fips script to a later pahse of boot, since
+the /boot might not be available early on.
+
+The problem is that systemd-cryptsetup* services could be run now
+started before the do_fips is executed and need the crypto modules
+to decrypted the devices.
+
+So let's split the do_fips and load the module before udev does the
+trigger.
+---
+ modules.d/01fips/fips-load-crypto.sh |  8 ++++++++
+ modules.d/01fips/fips.sh             | 19 +++++++++++--------
+ modules.d/01fips/module-setup.sh     |  1 +
+ 3 files changed, 20 insertions(+), 8 deletions(-)
+
+diff --git a/modules.d/01fips/fips-load-crypto.sh b/modules.d/01fips/fips-load-crypto.sh
+new file mode 100644
+index 00000000..82cbeee4
+--- /dev/null
++++ b/modules.d/01fips/fips-load-crypto.sh
+@@ -0,0 +1,8 @@
++#!/bin/sh
++
++if ! fipsmode=$(getarg fips) || [ $fipsmode = "0" ]; then
++    rm -f -- /etc/modprobe.d/fips.conf >/dev/null 2>&1
++else
++    . /sbin/fips.sh
++    fips_load_crypto || die "FIPS integrity test failed"
++fi
+diff --git a/modules.d/01fips/fips.sh b/modules.d/01fips/fips.sh
+index 9bc089f2..beaa692b 100755
+--- a/modules.d/01fips/fips.sh
++++ b/modules.d/01fips/fips.sh
+@@ -69,15 +69,8 @@ do_rhevh_check()
+     return 0
+ }
+ 
+-do_fips()
++fips_load_crypto()
+ {
+-    local _v
+-    local _s
+-    local _v
+-    local _module
+-
+-    KERNEL=$(uname -r)
+-
+     FIPSMODULES=$(cat /etc/fipsmodules)
+ 
+     info "Loading and integrity checking all crypto modules"
+@@ -102,6 +95,16 @@ do_fips()
+     info "Self testing crypto algorithms"
+     modprobe tcrypt || return 1
+     rmmod tcrypt
++}
++
++do_fips()
++{
++    local _v
++    local _s
++    local _v
++    local _module
++
++    KERNEL=$(uname -r)
+ 
+     info "Checking integrity of kernel"
+     if [ -e "/run/initramfs/live/vmlinuz0" ]; then
+diff --git a/modules.d/01fips/module-setup.sh b/modules.d/01fips/module-setup.sh
+index f3af4d90..18186d62 100755
+--- a/modules.d/01fips/module-setup.sh
++++ b/modules.d/01fips/module-setup.sh
+@@ -54,6 +54,7 @@ install() {
+     local _dir
+     inst_hook pre-trigger 01 "$moddir/fips-boot.sh"
+     inst_hook pre-pivot 01 "$moddir/fips-noboot.sh"
++    inst_hook pre-udev 01 "$moddir/fips-load-crypto.sh"
+     inst_script "$moddir/fips.sh" /sbin/fips.sh
+ 
+     inst_multiple sha512hmac rmmod insmod mount uname umount
+

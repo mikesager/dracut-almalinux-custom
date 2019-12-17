@@ -1,0 +1,22 @@
+From d86dfcd148e5d726f00b8a83eeadb11aa0017fba Mon Sep 17 00:00:00 2001
+From: Harald Hoyer <harald@redhat.com>
+Date: Mon, 22 Jul 2019 14:07:26 +0200
+Subject: [PATCH] dracut.spec: add 06rngd
+
+---
+ dracut.spec | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/dracut.spec b/dracut.spec
+index de57703c..92c7f7bf 100644
+--- a/dracut.spec
++++ b/dracut.spec
+@@ -346,6 +346,7 @@ install -m 0755 51-dracut-rescue-postinst.sh $RPM_BUILD_ROOT%{_sysconfdir}/kerne
+ %{dracutlibdir}/modules.d/03rescue
+ %{dracutlibdir}/modules.d/04watchdog
+ %{dracutlibdir}/modules.d/05busybox
++%{dracutlibdir}/modules.d/06rngd
+ %{dracutlibdir}/modules.d/10i18n
+ %{dracutlibdir}/modules.d/30convertfs
+ %{dracutlibdir}/modules.d/45url-lib
+

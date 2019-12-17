@@ -1,0 +1,32 @@
+From ce722c7307e48a991d8450360a1a0183dfdb4915 Mon Sep 17 00:00:00 2001
+From: Jonathan Lebon <jonathan@jlebon.com>
+Date: Tue, 29 Oct 2019 09:35:41 -0400
+Subject: [PATCH] 01fips: fix HMAC file path resolution
+
+There is a small regression in #343: when handling the 'separate boot
+partition' case, we're checking for the kernel image in the wrong
+location: `BOOT_IMAGE` is the `/boot`-relative path to the kernel image,
+so `/boot/${BOOT_IMAGE_PATH}/${BOOT_IMAGE}` expands to e.g.
+`/boot/mysubdir1/mysubdir2/mysubdir1/mysubdir2/vmlinuz...`.
+
+We should be using `BOOT_IMAGE_NAME` here instead (and in fact, the next
+if-statement does this correctly, so it might've just been accidentally
+left out of #343).
+---
+ modules.d/01fips/fips.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/01fips/fips.sh b/modules.d/01fips/fips.sh
+index beaa692b..c3dbcf74 100755
+--- a/modules.d/01fips/fips.sh
++++ b/modules.d/01fips/fips.sh
+@@ -118,7 +118,7 @@ do_fips()
+ 
+         if [ -z "$BOOT_IMAGE_NAME" ]; then
+             BOOT_IMAGE_NAME="vmlinuz-${KERNEL}"
+-        elif ! [ -e "/boot/${BOOT_IMAGE_PATH}/${BOOT_IMAGE}" ]; then
++        elif ! [ -e "/boot/${BOOT_IMAGE_PATH}/${BOOT_IMAGE_NAME}" ]; then
+             #if /boot is not a separate partition BOOT_IMAGE might start with /boot
+             BOOT_IMAGE_PATH=${BOOT_IMAGE_PATH#"/boot"}
+             #on some achitectures BOOT_IMAGE does not contain path to kernel
+

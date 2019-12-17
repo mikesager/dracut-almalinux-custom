@@ -1,0 +1,28 @@
+From 2e5265c80e03112c75888a31c170963e913070ed Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Tue, 14 Aug 2018 14:04:02 +0200
+Subject: [PATCH] spec: return old provides
+
+---
+ dracut.spec | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/dracut.spec b/dracut.spec
+index 155868ce..553280c3 100644
+--- a/dracut.spec
++++ b/dracut.spec
+@@ -65,6 +65,13 @@ Provides:  dracut-fips = %{version}-%{release}
+ Obsoletes: dracut-fips-aesni <= 047
+ Provides:  dracut-fips-aesni = %{version}-%{release}
+ 
++Obsoletes: dracut-kernel < 005
++Provides:  dracut-kernel = %{version}-%{release}
++
++Obsoletes: dracut < 030
++Obsoletes: dracut-norescue < 030
++Provides:  dracut-norescue = %{version}-%{release}
++
+ Requires: bash >= 4
+ Requires: coreutils
+ Requires: cpio
+

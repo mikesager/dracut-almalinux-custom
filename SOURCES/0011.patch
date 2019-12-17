@@ -1,0 +1,40 @@
+From 81b59fbbd6ebeee05b5d6869ae4f36bb9e486f72 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Tue, 8 Jan 2019 17:16:07 +0100
+Subject: [PATCH] 95iscsi: rd.iscsi.initiator should have priority over stored
+ configuration
+
+(cherry picked from commit 61afc704548cecc7f7d2fa3b5f1319e790cc5bee)
+
+Resolves: #1664062
+---
+ modules.d/95iscsi/parse-iscsiroot.sh | 15 +++++++--------
+ 1 file changed, 7 insertions(+), 8 deletions(-)
+
+diff --git a/modules.d/95iscsi/parse-iscsiroot.sh b/modules.d/95iscsi/parse-iscsiroot.sh
+index 7a64d888..f00a83bb 100755
+--- a/modules.d/95iscsi/parse-iscsiroot.sh
++++ b/modules.d/95iscsi/parse-iscsiroot.sh
+@@ -107,14 +107,13 @@ if arg=$(getarg rd.iscsi.initiator -d iscsi_initiator=) && [ -n "$arg" ] && ! [
+     iscsi_initiator=$arg
+     echo "InitiatorName=$iscsi_initiator" > /run/initiatorname.iscsi
+     ln -fs /run/initiatorname.iscsi /dev/.initiatorname.iscsi
+-    if ! [ -e /etc/iscsi/initiatorname.iscsi ]; then
+-        mkdir -p /etc/iscsi
+-        ln -fs /run/initiatorname.iscsi /etc/iscsi/initiatorname.iscsi
+-        if [ -n "$DRACUT_SYSTEMD" ]; then
+-            systemctl try-restart iscsid
+-            # FIXME: iscsid is not yet ready, when the service is :-/
+-            sleep 1
+-        fi
++    rm -f /etc/iscsi/initiatorname.iscsi
++    mkdir -p /etc/iscsi
++    ln -fs /run/initiatorname.iscsi /etc/iscsi/initiatorname.iscsi
++    if [ -n "$DRACUT_SYSTEMD" ]; then
++        systemctl try-restart iscsid
++        # FIXME: iscsid is not yet ready, when the service is :-/
++        sleep 1
+     fi
+ fi
+ 
+

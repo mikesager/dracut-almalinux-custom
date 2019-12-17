@@ -1,0 +1,34 @@
+From 1851348709df5413a767faecdee908534baf0da1 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Wed, 12 Jun 2019 14:27:44 +0800
+Subject: [PATCH] 95fcoe: load 'libfcoe' module as a fallback
+
+The kernel may only enable 'libfcoe' module. Some modules like bnx2fc
+provides FCoE but only depend on 'libfcoe'. Loading 'fcoe' module may
+fail but the kernel do support FCoE.
+
+'libfcoe' will be installed as a dependency when installing block device
+drivers if it's required. So no need to install it in installkernel.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 65fe1af2eca7d0ed340520577ab861fcd695b34a)
+
+Resolves: #1719645
+---
+ modules.d/95fcoe/parse-fcoe.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/95fcoe/parse-fcoe.sh b/modules.d/95fcoe/parse-fcoe.sh
+index 75cca9a5..12701cdb 100755
+--- a/modules.d/95fcoe/parse-fcoe.sh
++++ b/modules.d/95fcoe/parse-fcoe.sh
+@@ -18,7 +18,7 @@
+ # If it's not set we don't continue
+ [ -z "$fcoe" ] && return
+ 
+-[ -e /sys/bus/fcoe/ctlr_create ] || modprobe -b -a fcoe || die "FCoE requested but kernel/initrd does not support FCoE"
++[ -e /sys/bus/fcoe/ctlr_create ] || modprobe -b -a fcoe || modprobe -b -a libfcoe || die "FCoE requested but kernel/initrd does not support FCoE"
+ 
+ initqueue --onetime modprobe -b -q bnx2fc
+ 
+

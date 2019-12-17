@@ -1,0 +1,94 @@
+From 829ed8ef5cca250fac475ad6b0265c792c3af015 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Wed, 13 Mar 2019 17:36:53 +0800
+Subject: [PATCH] squash: also squash systemctl if switch-root is not needed
+
+systemctl need to be accessible on switch-root, but we unmount the
+squash image on switch-root, so it will fail. systemctl depends on a lot
+of libraries, squash them can save more RAM. So allow modules
+(eg. kdump) to tell dracut that switch-root will be intercepted,
+then we don't need to take care of that.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 3ee0ca5eb74be5d1fbd0e6d643f6fff06234177f)
+
+Resolves: #1691705
+---
+ dracut-init.sh |  4 ++++
+ dracut.sh      | 40 ++++++++++++++++++++++------------------
+ 2 files changed, 26 insertions(+), 18 deletions(-)
+
+diff --git a/dracut-init.sh b/dracut-init.sh
+index 50d23e2d..b1ac9966 100644
+--- a/dracut-init.sh
++++ b/dracut-init.sh
+@@ -150,6 +150,10 @@ dracut_module_included() {
+     [[ " $mods_to_load $modules_loaded " == *\ $*\ * ]]
+ }
+ 
++dracut_no_switch_root() {
++    >"$initdir/lib/dracut/no-switch-root"
++}
++
+ if ! [[ $DRACUT_INSTALL ]]; then
+     DRACUT_INSTALL=$(find_binary dracut-install)
+ fi
+diff --git a/dracut.sh b/dracut.sh
+index 6de88b3e..8144a16e 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1772,24 +1772,6 @@ if dracut_module_included "squash"; then
+         mv $initdir/$folder $squash_dir/$folder
+     done
+ 
+-    # Reinstall required files for the squash image setup script.
+-    # We have moved them inside the squashed image, but they need to be
+-    # accessible before mounting the image. Also install systemctl,
+-    # it's requires for switch-root, but we will umount the image before switch-root
+-    inst_multiple "echo" "sh" "mount" "modprobe" "mkdir" "systemctl"
+-    hostonly="" instmods "loop" "squashfs" "overlay"
+-
+-    for folder in "${squash_candidate[@]}"; do
+-        # Remove duplicated files in squashfs image, save some more space
+-        [[ ! -d $initdir/$folder/ ]] && continue
+-        for file in $(find $initdir/$folder/ -not -type d);
+-        do
+-            if [[ -e $squash_dir${file#$initdir} ]]; then
+-                mv $squash_dir${file#$initdir} $file
+-            fi
+-        done
+-    done
+-
+     # Move some files out side of the squash image, including:
+     # - Files required to boot and mount the squashfs image
+     # - Files need to be accessable without mounting the squash image
+@@ -1851,6 +1833,28 @@ if dracut_module_included "squash"; then
+     ln -s squash/init.sh $initdir/init
+     ln -s squash/shutdown.sh $initdir/shutdown
+ 
++    # Reinstall required files for the squash image setup script.
++    # We have moved them inside the squashed image, but they need to be
++    # accessible before mounting the image.
++    inst_multiple "echo" "sh" "mount" "modprobe" "mkdir"
++    hostonly="" instmods "loop" "squashfs" "overlay"
++
++    # Only keep systemctl outsite if we need switch root
++    if [[ ! -f "$initdir/lib/dracut/no-switch-root" ]]; then
++      inst "systemctl"
++    fi
++
++    for folder in "${squash_candidate[@]}"; do
++        # Remove duplicated files in squashfs image, save some more space
++        [[ ! -d $initdir/$folder/ ]] && continue
++        for file in $(find $initdir/$folder/ -not -type d);
++        do
++            if [[ -e $squash_dir${file#$initdir} ]]; then
++                mv $squash_dir${file#$initdir} $file
++            fi
++        done
++    done
++
+     mksquashfs $squash_dir $squash_img -comp xz -b 64K -Xdict-size 100% &> /dev/null
+ 
+     if [[ $? != 0 ]]; then
+

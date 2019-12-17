@@ -1,0 +1,38 @@
+From 90054e4f1f2f64cb9a2b06b44b5a82b293c387dd Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Thu, 10 Jan 2019 18:08:32 +0100
+Subject: [PATCH] 95iscsi: decouple iscsi from sysinit.target
+
+---
+ modules.d/95iscsi/module-setup.sh | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/modules.d/95iscsi/module-setup.sh b/modules.d/95iscsi/module-setup.sh
+index 5c2073bb..ae1924cc 100755
+--- a/modules.d/95iscsi/module-setup.sh
++++ b/modules.d/95iscsi/module-setup.sh
+@@ -265,6 +265,23 @@ install() {
+             echo "After=dracut-cmdline.service"
+             echo "Before=dracut-initqueue.service"
+         ) > "${initdir}/$systemdsystemunitdir/iscsid.service.d/dracut.conf"
++
++        # The iscsi deamon does not need to wait for any storage inside initrd
++        mkdir -p "${initdir}/$systemdsystemunitdir/iscsid.socket.d"
++        (
++            echo "[Unit]"
++            echo "DefaultDependencies=no"
++            echo "Conflicts=shutdown.target"
++            echo "Before=shutdown.target sockets.target"
++        ) > "${initdir}/$systemdsystemunitdir/iscsid.socket.d/dracut.conf"
++        mkdir -p "${initdir}/$systemdsystemunitdir/iscsuio.socket.d"
++        (
++            echo "[Unit]"
++            echo "DefaultDependencies=no"
++            echo "Conflicts=shutdown.target"
++            echo "Before=shutdown.target sockets.target"
++        ) > "${initdir}/$systemdsystemunitdir/iscsuio.socket.d/dracut.conf"
++
+     fi
+     inst_dir /var/lib/iscsi
+     dracut_need_initqueue
+

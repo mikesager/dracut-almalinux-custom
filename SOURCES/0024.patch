@@ -1,0 +1,36 @@
+From 9b2497dffb8f699ce040cdbafa967f5fe02b57b6 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Fri, 2 Aug 2019 14:26:23 +0200
+Subject: [PATCH] 90kernel-modules-extra: don't resolve symlinks before instmod
+
+When you install a third-party driver, you will probably end in a
+situation, where the module will be in a different directory and
+in $depmod_module_dir you will only have symlink. If we resolve the
+symlink before we pass the module path to instmod, the dracut-install
+will only include the module with its original path, but not the
+symlink. Hence the module can't be automatically loaded.
+
+Dracut-install is clever enough to handle symlinks and will include both
+the symlink and the module to the initrd.
+
+(cherry picked from commit d1afff43aea01c8d43817adf3ac4041dd4b9f022)
+
+Resolves: #1720275
+---
+ modules.d/90kernel-modules-extra/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/90kernel-modules-extra/module-setup.sh b/modules.d/90kernel-modules-extra/module-setup.sh
+index c0a2b7f9..1706c822 100755
+--- a/modules.d/90kernel-modules-extra/module-setup.sh
++++ b/modules.d/90kernel-modules-extra/module-setup.sh
+@@ -187,7 +187,7 @@ installkernel()
+ 	printf "^%s\.ko(\.gz|\.bz2|\.xz)?:\n" "${pathlist[@]}" \
+ 		| (LANG=C grep -E -o -f - -- "$depmod_modules_dep" || exit 0) \
+ 		| tr -d ':' \
+-		| (cd "$depmod_module_dir" || exit; xargs -r realpath -e --) \
++		| (cd "$depmod_module_dir" || exit; xargs -r realpath -se --) \
+ 		| instmods || return 1
+ 
+ 	return 0
+

@@ -1,0 +1,33 @@
+From b4ef00aebea4e201be493b4a9520de71b188f42d Mon Sep 17 00:00:00 2001
+From: Jonathan Lebon <jonathan@jlebon.com>
+Date: Tue, 29 Oct 2019 16:47:34 -0400
+Subject: [PATCH] 01fips: run sha512hmac from directory HMAC file directory
+
+That way, the HMAC file can contain a relative path instead of an
+absolute one. The issue is that right now the kernel RPM bakes the
+`/boot/vmlinuz-${kver}` path into the HMAC file which poses an issue for
+rpm-ostree systems (and any other system where the kernel isn't simply
+in the top-level `/boot`.
+
+For now, we're hacking around this in rpm-ostree:
+https://github.com/coreos/rpm-ostree/pull/1934
+
+Though I'd like to propose the same change in the kernel spec file.
+---
+ modules.d/01fips/fips.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/01fips/fips.sh b/modules.d/01fips/fips.sh
+index c3dbcf74..893143d0 100755
+--- a/modules.d/01fips/fips.sh
++++ b/modules.d/01fips/fips.sh
+@@ -135,7 +135,7 @@ do_fips()
+             return 1
+         fi
+ 
+-        sha512hmac -c "${BOOT_IMAGE_HMAC}" || return 1
++        (cd "${BOOT_IMAGE_HMAC%/*}" && sha512hmac -c "${BOOT_IMAGE_HMAC}") || return 1
+     fi
+ 
+     info "All initrd crypto checks done"
+

@@ -1,0 +1,49 @@
+From 927428e6a5e90b2214ee9edf15d4eb6c0fc5c203 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Mon, 11 Mar 2019 18:44:02 +0800
+Subject: [PATCH] squash: squash systemd binary and udevadm
+
+systemd binary and udevadm are not needed to be outside the squash
+image. Some binaries are kept outside because they are required before
+mounting the image, or after umounting the image (when switching root),
+or they may block umounting the image. But we are using lazy umounting,
+so actually nothing will block the umount.
+
+Keep more binaries outside the squash image won't hurt but cost extra
+memories, the idea of squash image is to save memory usage.
+
+So, there is no reason to keep udevadm outside, that should be a debug
+left over. For systemd binary, it's running when switch root happens,
+But we have lazy umounted the image and overlay, once systemd process
+exec the new systemd in new root, everything will be cleared by kernel.
+
+Also tidy up the comment make it less confussing.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit e1e1f6e8e6747d8f32c065e267e0a57587818c9e)
+
+Resolves: #1691705
+---
+ dracut.sh | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index e683a9bc..a0158f22 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1772,9 +1772,11 @@ if dracut_module_included "squash"; then
+         mv $initdir/$folder $squash_dir/$folder
+     done
+ 
+-    # Reinstall required files, because we have moved some important folders to $squash_dir
+-    inst_multiple "echo" "sh" "mount" "modprobe" "mkdir" \
+-        "systemctl" "udevadm" "$systemdutildir/systemd"
++    # Reinstall required files for the squash image setup script.
++    # We have moved them inside the squashed image, but they need to be
++    # accessible before mounting the image. Also install systemctl,
++    # it's requires for switch-root, but we will umount the image before switch-root
++    inst_multiple "echo" "sh" "mount" "modprobe" "mkdir" "systemctl"
+     hostonly="" instmods "loop" "squashfs" "overlay"
+ 
+     for folder in "${squash_candidate[@]}"; do
+

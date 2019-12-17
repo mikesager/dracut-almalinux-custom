@@ -1,0 +1,94 @@
+From 7ee74e539dba61c3765afe34426b085eff0de027 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Thu, 21 Feb 2019 13:18:37 +0800
+Subject: [PATCH] dracut: let module handling function accept optional path
+ option
+
+Let the caller pass in the module path instead of try to find the module
+path everytime. This helps optimize the overall runtime.
+
+Test results (3 rounds) on Fedora 30 in KVM VM with 8 CPUs, 2G memory, HDD:
+
+    $ time ./dracut.sh --local --quiet --hostonly --hostonly-cmdline --hostonly-i18n --hostonly-mode 'strict' -o 'plymouth dash resume ifcfg' --mount '/dev/mapper/fedora-root /sysroot xfs defaults' --no-hostonly-default-device -f initramfs.img
+    Before the commit:
+    real    0m11.782s  |  real    0m11.505s  |  real    0m11.958s
+    user    0m9.169s   |  user    0m9.218s   |  user    0m9.327s
+    sys     0m10.839s  |  sys     0m10.829s  |  sys     0m10.925s
+
+    After this commit:
+    real    0m9.866s  |  real    0m9.580s  |  real    0m9.638s
+    user    0m9.048s  |  user    0m9.142s  |  user    0m9.120s
+    sys     0m7.411s  |  sys     0m7.775s  |  sys     0m7.745s
+
+Test result of building a ordinary image:
+
+    $ time ./dracut.sh --local --quiet -f initramfs.img
+    Before the commit:
+    real    0m34.697s  |  real    0m34.371s  |  real    0m35.122s
+    user    0m27.608s  |  user    0m27.524s  |  user    0m27.705s
+    sys     0m22.341s  |  sys     0m22.032s  |  sys     0m22.246s
+
+    After the commit:
+    real    0m31.914s  |  real    0m31.006  |  real    0m31.289ss
+    user    0m27.315s  |  user    0m27.324  |  user    0m27.290ss
+    sys     0m19.051s  |  sys     0m18.916  |  sys     0m19.022ss
+
+This will have an ~2s speed up.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 5916d31b24ad9eb21fd376929a96c459813315a1)
+
+Cherry-picked from: 5916d31b
+Resolves: #1734047
+---
+ dracut-init.sh | 4 ++++
+ dracut.sh      | 8 ++++----
+ 2 files changed, 8 insertions(+), 4 deletions(-)
+
+diff --git a/dracut-init.sh b/dracut-init.sh
+index b1ac9966..ab07cabf 100644
+--- a/dracut-init.sh
++++ b/dracut-init.sh
+@@ -154,6 +154,10 @@ dracut_no_switch_root() {
+     >"$initdir/lib/dracut/no-switch-root"
+ }
+ 
++dracut_module_path() {
++    echo ${dracutbasedir}/modules.d/??${1} | { read a b; echo "$a"; }
++}
++
+ if ! [[ $DRACUT_INSTALL ]]; then
+     DRACUT_INSTALL=$(find_binary dracut-install)
+ fi
+diff --git a/dracut.sh b/dracut.sh
+index 8144a16e..f270af76 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1373,7 +1373,7 @@ do_print_cmdline()
+     for moddir in "$dracutbasedir/modules.d"/[0-9][0-9]*; do
+         _d_mod=${moddir##*/}; _d_mod=${_d_mod#[0-9][0-9]}
+         [[ ${_mods_to_print[$_d_mod]} ]] || continue
+-        module_cmdline "$_d_mod"
++        module_cmdline "$_d_mod" "$moddir"
+     done
+     unset moddir
+ }
+@@ -1454,14 +1454,14 @@ for moddir in "$dracutbasedir/modules.d"/[0-9][0-9]*; do
+         dinfo "*** Including module: $_d_mod ***"
+     fi
+     if [[ $kernel_only == yes ]]; then
+-        module_installkernel "$_d_mod" || {
++        module_installkernel "$_d_mod" "$moddir" || {
+             dfatal "installkernel failed in module $_d_mod"
+             exit 1
+         }
+     else
+-        module_install "$_d_mod"
++        module_install "$_d_mod" "$moddir"
+         if [[ $no_kernel != yes ]]; then
+-            module_installkernel "$_d_mod" || {
++            module_installkernel "$_d_mod" "$moddir" || {
+                 dfatal "installkernel failed in module $_d_mod"
+                 exit 1
+             }
+

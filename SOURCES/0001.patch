@@ -1,0 +1,53 @@
+From 3cb0f01a1e8a05dd4c6412907f5e9a398b2ace2c Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Fri, 31 Aug 2018 13:06:34 +0200
+Subject: [PATCH] Revert "use cp --reflink=auto"
+
+This reverts commit 8cd8820547257299a33b2d1e3ecf7c6241a569b2.
+Resolves: #1623990
+---
+ 50-dracut.install            | 2 +-
+ 51-dracut-rescue-postinst.sh | 2 +-
+ 51-dracut-rescue.install     | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/50-dracut.install b/50-dracut.install
+index 64e3549f..ec59dcb3 100755
+--- a/50-dracut.install
++++ b/50-dracut.install
+@@ -25,7 +25,7 @@ case "$COMMAND" in
+         if [[ -f ${INITRD_IMAGE_PREGENERATED} ]]; then
+             # we found an initrd at the same place as the kernel
+             # use this and don't generate a new one
+-            cp --reflink=auto "$INITRD_IMAGE_PREGENERATED" "$BOOT_DIR_ABS/$INITRD" \
++            cp "$INITRD_IMAGE_PREGENERATED" "$BOOT_DIR_ABS/$INITRD" \
+                 && chown root:root "$BOOT_DIR_ABS/$INITRD" \
+                 && chmod 0600 "$BOOT_DIR_ABS/$INITRD" \
+                 && exit 0
+diff --git a/51-dracut-rescue-postinst.sh b/51-dracut-rescue-postinst.sh
+index 67f5b717..23158552 100755
+--- a/51-dracut-rescue-postinst.sh
++++ b/51-dracut-rescue-postinst.sh
+@@ -57,7 +57,7 @@ if [[ ! -f $INITRDFILE ]]; then
+ fi
+ 
+ if [[ ! -f $NEW_KERNEL_IMAGE ]]; then
+-    cp --reflink=auto "$KERNEL_IMAGE" "$NEW_KERNEL_IMAGE"
++    cp "$KERNEL_IMAGE" "$NEW_KERNEL_IMAGE"
+     ((ret+=$?))
+ fi
+ 
+diff --git a/51-dracut-rescue.install b/51-dracut-rescue.install
+index 6ddafdb6..426ddee5 100755
+--- a/51-dracut-rescue.install
++++ b/51-dracut-rescue.install
+@@ -93,7 +93,7 @@ case "$COMMAND" in
+ 
+         [[ -d "$BOOT_DIR_ABS" ]] || mkdir -p "$BOOT_DIR_ABS"
+ 
+-        if ! cp --reflink=auto "$KERNEL_IMAGE" "$BOOT_DIR_ABS/$KERNEL"; then
++        if ! cp "$KERNEL_IMAGE" "$BOOT_DIR_ABS/$KERNEL"; then
+             echo "Can't copy '$KERNEL_IMAGE to '$BOOT_DIR_ABS/$KERNEL'!" >&2
+         fi
+ 
+
