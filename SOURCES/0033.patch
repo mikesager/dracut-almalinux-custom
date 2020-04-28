@@ -1,0 +1,346 @@
+From e35e43c1c28a8935660fe72650614e5dc1defb65 Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Wed, 26 Jun 2019 11:47:21 +0200
+Subject: [PATCH] test: tell systemd to reboot on fatal errors
+
+Otherwise systemd would freeze execution, causing the test to time out
+instead of failing fast.
+
+(cherry picked from commit 7934c6f918de2e82d0df5da557c5792c4fb7b798)
+---
+ test/TEST-01-BASIC/test.sh              | 2 +-
+ test/TEST-02-SYSTEMD/test.sh            | 2 +-
+ test/TEST-03-USR-MOUNT/test.sh          | 2 +-
+ test/TEST-04-FULL-SYSTEMD/test.sh       | 2 +-
+ test/TEST-10-RAID/test.sh               | 2 +-
+ test/TEST-11-LVM/test.sh                | 2 +-
+ test/TEST-12-RAID-DEG/test.sh           | 2 +-
+ test/TEST-13-ENC-RAID-LVM/test.sh       | 6 +++---
+ test/TEST-14-IMSM/test.sh               | 2 +-
+ test/TEST-15-BTRFSRAID/test.sh          | 2 +-
+ test/TEST-16-DMSQUASH/test.sh           | 2 +-
+ test/TEST-17-LVM-THIN/test.sh           | 2 +-
+ test/TEST-20-NFS/test.sh                | 4 ++--
+ test/TEST-30-ISCSI/test.sh              | 4 ++--
+ test/TEST-31-ISCSI-MULTI/test.sh        | 4 ++--
+ test/TEST-40-NBD/test.sh                | 4 ++--
+ test/TEST-50-MULTINIC/test.sh           | 4 ++--
+ test/TEST-70-BONDBRIDGETEAMVLAN/test.sh | 6 +++---
+ 18 files changed, 27 insertions(+), 27 deletions(-)
+
+diff --git a/test/TEST-01-BASIC/test.sh b/test/TEST-01-BASIC/test.sh
+index ed2ae5de..ca4a8288 100755
+--- a/test/TEST-01-BASIC/test.sh
++++ b/test/TEST-01-BASIC/test.sh
+@@ -15,7 +15,7 @@ test_run() {
+ 	-net none \
+ 	-watchdog i6300esb -watchdog-action poweroff \
+         -no-reboot \
+-	-append "panic=1 root=LABEL=dracut rw systemd.log_level=debug systemd.log_target=console rd.retry=3 rd.debug console=ttyS0,115200n81 rd.shell=0 $DEBUGFAIL" \
++	-append "panic=1 systemd.crash_reboot root=LABEL=dracut rw systemd.log_level=debug systemd.log_target=console rd.retry=3 rd.debug console=ttyS0,115200n81 rd.shell=0 $DEBUGFAIL" \
+ 	-initrd $TESTDIR/initramfs.testing || return 1
+     grep -F -m 1 -q dracut-root-block-success $TESTDIR/result || return 1
+ }
+diff --git a/test/TEST-02-SYSTEMD/test.sh b/test/TEST-02-SYSTEMD/test.sh
+index 8c5eb168..848021e5 100755
+--- a/test/TEST-02-SYSTEMD/test.sh
++++ b/test/TEST-02-SYSTEMD/test.sh
+@@ -11,7 +11,7 @@ test_run() {
+         -m 512M  -smp 2 -nographic \
+         -net none \
+         -no-reboot \
+-        -append "panic=1 root=LABEL=dracut rw loglevel=77 systemd.log_level=debug systemd.log_target=console rd.retry=3 rd.info console=ttyS0,115200n81 selinux=0 init=/sbin/init rd.shell=0 $DEBUGFAIL" \
++        -append "panic=1 systemd.crash_reboot root=LABEL=dracut rw loglevel=77 systemd.log_level=debug systemd.log_target=console rd.retry=3 rd.info console=ttyS0,115200n81 selinux=0 init=/sbin/init rd.shell=0 $DEBUGFAIL" \
+         -initrd $TESTDIR/initramfs.testing
+     grep -F -m 1 -q dracut-root-block-success $TESTDIR/root.ext3 || return 1
+ }
+diff --git a/test/TEST-03-USR-MOUNT/test.sh b/test/TEST-03-USR-MOUNT/test.sh
+index 42c0da65..5d5ec8f8 100755
+--- a/test/TEST-03-USR-MOUNT/test.sh
++++ b/test/TEST-03-USR-MOUNT/test.sh
+@@ -22,7 +22,7 @@ client_run() {
+ 	-net none \
+ 	-watchdog i6300esb -watchdog-action poweroff \
+         -no-reboot \
+-	-append "panic=1 root=LABEL=dracut $client_opts quiet rd.retry=3 rd.info console=ttyS0,115200n81 selinux=0 rd.debug rd.shell=0 $DEBUGFAIL" \
++	-append "panic=1 systemd.crash_reboot root=LABEL=dracut $client_opts quiet rd.retry=3 rd.info console=ttyS0,115200n81 selinux=0 rd.debug rd.shell=0 $DEBUGFAIL" \
+ 	-initrd $TESTDIR/initramfs.testing
+ 
+     if (($? != 0)); then
+diff --git a/test/TEST-04-FULL-SYSTEMD/test.sh b/test/TEST-04-FULL-SYSTEMD/test.sh
+index 97528e4f..f65f30f2 100755
+--- a/test/TEST-04-FULL-SYSTEMD/test.sh
++++ b/test/TEST-04-FULL-SYSTEMD/test.sh
+@@ -23,7 +23,7 @@ client_run() {
+ 	-m 512M  -smp 2 -nographic \
+ 	-net none \
+         -no-reboot \
+-	-append "panic=1 root=LABEL=dracut $client_opts rd.retry=3 console=ttyS0,115200n81 selinux=0 $DEBUGOUT rd.shell=0 $DEBUGFAIL" \
++	-append "panic=1 systemd.crash_reboot root=LABEL=dracut $client_opts rd.retry=3 console=ttyS0,115200n81 selinux=0 $DEBUGOUT rd.shell=0 $DEBUGFAIL" \
+ 	-initrd $TESTDIR/initramfs.testing
+ 
+     if (($? != 0)); then
+diff --git a/test/TEST-10-RAID/test.sh b/test/TEST-10-RAID/test.sh
+index 444126b2..0beb26c3 100755
+--- a/test/TEST-10-RAID/test.sh
++++ b/test/TEST-10-RAID/test.sh
+@@ -13,7 +13,7 @@ test_run() {
+ 	-m 512M  -smp 2 -nographic \
+ 	-net none \
+         -no-reboot \
+-	-append "panic=1 root=/dev/dracut/root rd.auto rw rd.retry=10 console=ttyS0,115200n81 selinux=0 rd.shell=0 $DEBUGFAIL" \
++	-append "panic=1 systemd.crash_reboot root=/dev/dracut/root rd.auto rw rd.retry=10 console=ttyS0,115200n81 selinux=0 rd.shell=0 $DEBUGFAIL" \
+ 	-initrd $TESTDIR/initramfs.testing
+     grep -F -m 1 -q dracut-root-block-success $DISKIMAGE || return 1
+ }
+diff --git a/test/TEST-11-LVM/test.sh b/test/TEST-11-LVM/test.sh
+index 5c105e01..a907c4b1 100755
+--- a/test/TEST-11-LVM/test.sh
++++ b/test/TEST-11-LVM/test.sh
+@@ -12,7 +12,7 @@ test_run() {
+ 	-m 512M  -smp 2 -nographic \
+ 	-net none \
+         -no-reboot \
+-	-append "panic=1 root=/dev/dracut/root rw rd.auto=1 quiet rd.retry=3 rd.info console=ttyS0,115200n81 selinux=0 rd.debug rd.shell=0 $DEBUGFAIL" \
++	-append "panic=1 systemd.crash_reboot root=/dev/dracut/root rw rd.auto=1 quiet rd.retry=3 rd.info console=ttyS0,115200n81 selinux=0 rd.debug rd.shell=0 $DEBUGFAIL" \
+ 	-initrd $TESTDIR/initramfs.testing
+     grep -F -m 1 -q dracut-root-block-success $TESTDIR/root.ext2 || return 1
+ }
+diff --git a/test/TEST-12-RAID-DEG/test.sh b/test/TEST-12-RAID-DEG/test.sh
+index 4e381d84..c82cde1e 100755
+--- a/test/TEST-12-RAID-DEG/test.sh
++++ b/test/TEST-12-RAID-DEG/test.sh
+@@ -20,7 +20,7 @@ client_run() {
+         -drive format=raw,index=3,media=disk,file=$TESTDIR/disk3.img.new \
+         -net none \
+         -no-reboot \
+-        -append "panic=1 $* systemd.log_target=kmsg loglevel=7 root=LABEL=root rw rd.retry=20 rd.info console=ttyS0,115200n81 log_buf_len=2M selinux=0 rd.debug rd.shell=0 $DEBUGFAIL " \
++        -append "panic=1 systemd.crash_reboot $* systemd.log_target=kmsg loglevel=7 root=LABEL=root rw rd.retry=20 rd.info console=ttyS0,115200n81 log_buf_len=2M selinux=0 rd.debug rd.shell=0 $DEBUGFAIL " \
+         -initrd $TESTDIR/initramfs.testing
+     if ! grep -F -m 1 -q dracut-root-block-success $TESTDIR/root.ext2; then
+         echo "CLIENT TEST END: $@ [FAIL]"
+diff --git a/test/TEST-13-ENC-RAID-LVM/test.sh b/test/TEST-13-ENC-RAID-LVM/test.sh
+index 76ec36b3..99324ce9 100755
+--- a/test/TEST-13-ENC-RAID-LVM/test.sh
++++ b/test/TEST-13-ENC-RAID-LVM/test.sh
+@@ -20,7 +20,7 @@ test_run() {
+ 	-m 512M  -smp 2 -nographic \
+ 	-net none \
+         -no-reboot \
+-	-append "panic=1 root=/dev/dracut/root rw rd.auto rd.retry=20 console=ttyS0,115200n81 selinux=0 rd.debug rootwait $LUKSARGS rd.shell=0 $DEBUGFAIL" \
++	-append "panic=1 systemd.crash_reboot root=/dev/dracut/root rw rd.auto rd.retry=20 console=ttyS0,115200n81 selinux=0 rd.debug rootwait $LUKSARGS rd.shell=0 $DEBUGFAIL" \
+ 	-initrd $TESTDIR/initramfs.testing
+     grep -F -m 1 -q dracut-root-block-success $TESTDIR/check-success.img || return 1
+     echo "CLIENT TEST END: [OK]"
+@@ -34,7 +34,7 @@ test_run() {
+ 	-m 512M  -smp 2 -nographic \
+ 	-net none \
+         -no-reboot \
+-	-append "panic=1 root=/dev/dracut/root rw quiet rd.auto rd.retry=20 rd.info console=ttyS0,115200n81 selinux=0 rd.debug  $DEBUGFAIL" \
++	-append "panic=1 systemd.crash_reboot root=/dev/dracut/root rw quiet rd.auto rd.retry=20 rd.info console=ttyS0,115200n81 selinux=0 rd.debug  $DEBUGFAIL" \
+ 	-initrd $TESTDIR/initramfs.testing
+     grep -F -m 1 -q dracut-root-block-success $TESTDIR/check-success.img || return 1
+     echo "CLIENT TEST END: [OK]"
+@@ -48,7 +48,7 @@ test_run() {
+ 	-m 512M  -smp 2 -nographic \
+ 	-net none \
+         -no-reboot \
+-	-append "panic=1 root=/dev/dracut/root rw quiet rd.auto rd.retry=10 rd.info console=ttyS0,115200n81 selinux=0 rd.debug  $DEBUGFAIL rd.luks.uuid=failme" \
++	-append "panic=1 systemd.crash_reboot root=/dev/dracut/root rw quiet rd.auto rd.retry=10 rd.info console=ttyS0,115200n81 selinux=0 rd.debug  $DEBUGFAIL rd.luks.uuid=failme" \
+ 	-initrd $TESTDIR/initramfs.testing
+     grep -F -m 1 -q dracut-root-block-success $TESTDIR/check-success.img && return 1
+     echo "CLIENT TEST END: [OK]"
+diff --git a/test/TEST-14-IMSM/test.sh b/test/TEST-14-IMSM/test.sh
+index 8ebc285a..ed60f052 100755
+--- a/test/TEST-14-IMSM/test.sh
++++ b/test/TEST-14-IMSM/test.sh
+@@ -16,7 +16,7 @@ client_run() {
+ 	-m 512M  -smp 2 -nographic \
+ 	-net none \
+         -no-reboot \
+-	-append "panic=1 $* root=LABEL=root rw debug rd.retry=5 rd.debug console=ttyS0,115200n81 selinux=0 rd.info rd.shell=0 $DEBUGFAIL" \
++	-append "panic=1 systemd.crash_reboot $* root=LABEL=root rw debug rd.retry=5 rd.debug console=ttyS0,115200n81 selinux=0 rd.info rd.shell=0 $DEBUGFAIL" \
+ 	-initrd $TESTDIR/initramfs.testing
+     if ! grep -F -m 1 -q dracut-root-block-success $TESTDIR/root.ext2; then
+ 	echo "CLIENT TEST END: $@ [FAIL]"
+diff --git a/test/TEST-15-BTRFSRAID/test.sh b/test/TEST-15-BTRFSRAID/test.sh
+index 02cb4976..dda76672 100755
+--- a/test/TEST-15-BTRFSRAID/test.sh
++++ b/test/TEST-15-BTRFSRAID/test.sh
+@@ -15,7 +15,7 @@ test_run() {
+ 	-m 512M -smp 2 -nographic \
+ 	-net none \
+         -no-reboot \
+-	-append "panic=1 root=LABEL=root rw rd.retry=3 rd.info console=ttyS0,115200n81 selinux=0 rd.shell=0 $DEBUGFAIL" \
++	-append "panic=1 systemd.crash_reboot root=LABEL=root rw rd.retry=3 rd.info console=ttyS0,115200n81 selinux=0 rd.shell=0 $DEBUGFAIL" \
+ 	-initrd $TESTDIR/initramfs.testing
+     grep -F -m 1 -q dracut-root-block-success $MARKER_DISKIMAGE || return 1
+ }
+diff --git a/test/TEST-16-DMSQUASH/test.sh b/test/TEST-16-DMSQUASH/test.sh
+index 45d8c4c0..65d5bdbb 100755
+--- a/test/TEST-16-DMSQUASH/test.sh
++++ b/test/TEST-16-DMSQUASH/test.sh
+@@ -23,7 +23,7 @@ test_run() {
+         -nographic \
+         -net none \
+         -no-reboot \
+-        -append "panic=1 root=live:CDLABEL=LiveCD live rw quiet rd.retry=3 rd.info console=ttyS0,115200n81 selinux=0 rd.shell=0 $DEBUGFAIL" \
++        -append "panic=1 systemd.crash_reboot root=live:CDLABEL=LiveCD live rw quiet rd.retry=3 rd.info console=ttyS0,115200n81 selinux=0 rd.shell=0 $DEBUGFAIL" \
+         -initrd "$TESTDIR"/initramfs.testing
+ 
+     # mediacheck test with qemu GUI
+diff --git a/test/TEST-17-LVM-THIN/test.sh b/test/TEST-17-LVM-THIN/test.sh
+index 1b36a216..c13e9063 100755
+--- a/test/TEST-17-LVM-THIN/test.sh
++++ b/test/TEST-17-LVM-THIN/test.sh
+@@ -12,7 +12,7 @@ test_run() {
+ 	-m 512M  -smp 2 -nographic \
+ 	-net none \
+         -no-reboot \
+-	-append "panic=1 root=/dev/dracut/root rw rd.auto=1 quiet rd.retry=3 rd.info console=ttyS0,115200n81 selinux=0 rd.debug rd.shell=0 $DEBUGFAIL" \
++	-append "panic=1 systemd.crash_reboot root=/dev/dracut/root rw rd.auto=1 quiet rd.retry=3 rd.info console=ttyS0,115200n81 selinux=0 rd.debug rd.shell=0 $DEBUGFAIL" \
+ 	-initrd $TESTDIR/initramfs.testing
+     grep -F -m 1 -q dracut-root-block-success $TESTDIR/root.ext2 || return 1
+ }
+diff --git a/test/TEST-20-NFS/test.sh b/test/TEST-20-NFS/test.sh
+index e942745a..4ad7fd77 100755
+--- a/test/TEST-20-NFS/test.sh
++++ b/test/TEST-20-NFS/test.sh
+@@ -22,7 +22,7 @@ run_server() {
+         ${SERIAL:--serial file:"$TESTDIR"/server.log} \
+         -watchdog i6300esb -watchdog-action poweroff \
+         -no-reboot \
+-        -append "panic=1 rd.debug loglevel=77 root=/dev/sda rootfstype=ext3 rw console=ttyS0,115200n81 selinux=0" \
++        -append "panic=1 systemd.crash_reboot rd.debug loglevel=77 root=/dev/sda rootfstype=ext3 rw console=ttyS0,115200n81 selinux=0" \
+         -initrd $TESTDIR/initramfs.server \
+         -pidfile $TESTDIR/server.pid -daemonize || return 1
+     sudo chmod 644 $TESTDIR/server.pid || return 1
+@@ -57,7 +57,7 @@ client_test() {
+         -net socket,connect=127.0.0.1:12320 \
+         -watchdog i6300esb -watchdog-action poweroff \
+         -no-reboot \
+-        -append "panic=1 rd.shell=0 $cmdline $DEBUGFAIL rd.debug rd.retry=10 rd.info quiet  ro console=ttyS0,115200n81 selinux=0" \
++        -append "panic=1 systemd.crash_reboot rd.shell=0 $cmdline $DEBUGFAIL rd.debug rd.retry=10 rd.info quiet  ro console=ttyS0,115200n81 selinux=0" \
+         -initrd $TESTDIR/initramfs.testing
+ 
+     if [[ $? -ne 0 ]] || ! grep -F -m 1 -q nfs-OK $TESTDIR/client.img; then
+diff --git a/test/TEST-30-ISCSI/test.sh b/test/TEST-30-ISCSI/test.sh
+index f6cc56d5..d5a6ba58 100755
+--- a/test/TEST-30-ISCSI/test.sh
++++ b/test/TEST-30-ISCSI/test.sh
+@@ -26,7 +26,7 @@ run_server() {
+         -net nic,macaddr=52:54:00:12:34:57,model=e1000 \
+         -net socket,listen=127.0.0.1:12330 \
+         -no-reboot \
+-        -append "panic=1 root=/dev/sda rootfstype=ext3 rw console=ttyS0,115200n81 selinux=0 $SERVER_DEBUG" \
++        -append "panic=1 systemd.crash_reboot root=/dev/sda rootfstype=ext3 rw console=ttyS0,115200n81 selinux=0 $SERVER_DEBUG" \
+         -initrd $TESTDIR/initramfs.server \
+         -pidfile $TESTDIR/server.pid -daemonize || return 1
+     sudo chmod 644 $TESTDIR/server.pid || return 1
+@@ -51,7 +51,7 @@ run_client() {
+         -net nic,macaddr=52:54:00:12:34:01,model=e1000 \
+         -net socket,connect=127.0.0.1:12330 \
+         -no-reboot \
+-        -append "panic=1 rw rd.auto rd.retry=50 console=ttyS0,115200n81 selinux=0 rd.debug=0 rd.shell=0 $DEBUGFAIL $*" \
++        -append "panic=1 systemd.crash_reboot rw rd.auto rd.retry=50 console=ttyS0,115200n81 selinux=0 rd.debug=0 rd.shell=0 $DEBUGFAIL $*" \
+         -initrd $TESTDIR/initramfs.testing
+     if ! grep -F -m 1 -q iscsi-OK $TESTDIR/client.img; then
+ 	echo "CLIENT TEST END: $test_name [FAILED - BAD EXIT]"
+diff --git a/test/TEST-31-ISCSI-MULTI/test.sh b/test/TEST-31-ISCSI-MULTI/test.sh
+index 5c38249c..20db2451 100755
+--- a/test/TEST-31-ISCSI-MULTI/test.sh
++++ b/test/TEST-31-ISCSI-MULTI/test.sh
+@@ -26,7 +26,7 @@ run_server() {
+         -net nic,macaddr=52:54:00:12:34:57,model=e1000 \
+         -net socket,listen=127.0.0.1:12331 \
+         -no-reboot \
+-        -append "panic=1 root=/dev/sda rootfstype=ext3 rw console=ttyS0,115200n81 selinux=0 $SERVER_DEBUG" \
++        -append "panic=1 systemd.crash_reboot root=/dev/sda rootfstype=ext3 rw console=ttyS0,115200n81 selinux=0 $SERVER_DEBUG" \
+         -initrd $TESTDIR/initramfs.server \
+         -pidfile $TESTDIR/server.pid -daemonize || return 1
+     sudo chmod 644 $TESTDIR/server.pid || return 1
+@@ -51,7 +51,7 @@ run_client() {
+         -net nic,macaddr=52:54:00:12:34:01,model=e1000 \
+         -net socket,connect=127.0.0.1:12331 \
+         -no-reboot \
+-        -append "panic=1 rw rd.auto rd.retry=50 console=ttyS0,115200n81 selinux=0 rd.debug=0 rd.shell=0 $DEBUGFAIL $*" \
++        -append "panic=1 systemd.crash_reboot rw rd.auto rd.retry=50 console=ttyS0,115200n81 selinux=0 rd.debug=0 rd.shell=0 $DEBUGFAIL $*" \
+         -initrd $TESTDIR/initramfs.testing
+     if ! grep -F -m 1 -q iscsi-OK $TESTDIR/client.img; then
+ 	echo "CLIENT TEST END: $test_name [FAILED - BAD EXIT]"
+diff --git a/test/TEST-40-NBD/test.sh b/test/TEST-40-NBD/test.sh
+index 12736a15..19ec5b0e 100755
+--- a/test/TEST-40-NBD/test.sh
++++ b/test/TEST-40-NBD/test.sh
+@@ -28,7 +28,7 @@ run_server() {
+         ${SERIAL:+-serial "$SERIAL"} \
+         ${SERIAL:--serial file:"$TESTDIR"/server.log} \
+         -no-reboot \
+-        -append "panic=1 root=/dev/sda rootfstype=ext2 rw quiet console=ttyS0,115200n81 selinux=0" \
++        -append "panic=1 systemd.crash_reboot root=/dev/sda rootfstype=ext2 rw quiet console=ttyS0,115200n81 selinux=0" \
+         -initrd $TESTDIR/initramfs.server -pidfile $TESTDIR/server.pid -daemonize || return 1
+     sudo chmod 644 $TESTDIR/server.pid || return 1
+ 
+@@ -65,7 +65,7 @@ client_test() {
+         -net nic,macaddr=$mac,model=e1000 \
+         -net socket,connect=127.0.0.1:12340 \
+         -no-reboot \
+-        -append "panic=1 rd.shell=0 $cmdline $DEBUGFAIL rd.auto rd.info rd.retry=10 ro console=ttyS0,115200n81  selinux=0  " \
++        -append "panic=1 systemd.crash_reboot rd.shell=0 $cmdline $DEBUGFAIL rd.auto rd.info rd.retry=10 ro console=ttyS0,115200n81  selinux=0  " \
+         -initrd $TESTDIR/initramfs.testing
+ 
+     if [[ $? -ne 0 ]] || ! grep -F -m 1 -q nbd-OK $TESTDIR/flag.img; then
+diff --git a/test/TEST-50-MULTINIC/test.sh b/test/TEST-50-MULTINIC/test.sh
+index 495a66f2..ff2961dc 100755
+--- a/test/TEST-50-MULTINIC/test.sh
++++ b/test/TEST-50-MULTINIC/test.sh
+@@ -23,7 +23,7 @@ run_server() {
+         ${SERIAL:--serial file:"$TESTDIR"/server.log} \
+         -watchdog i6300esb -watchdog-action poweroff \
+         -no-reboot \
+-        -append "panic=1 loglevel=7 root=/dev/sda rootfstype=ext3 rw console=ttyS0,115200n81 selinux=0" \
++        -append "panic=1 systemd.crash_reboot loglevel=7 root=/dev/sda rootfstype=ext3 rw console=ttyS0,115200n81 selinux=0" \
+         -initrd "$TESTDIR"/initramfs.server \
+         -pidfile "$TESTDIR"/server.pid -daemonize || return 1
+ 
+@@ -63,7 +63,7 @@ client_test() {
+                       -device e1000,netdev=n2,mac=52:54:00:12:34:99 \
+                       -watchdog i6300esb -watchdog-action poweroff \
+                       -no-reboot \
+-                      -append "panic=1 rd.shell=0 $cmdline $DEBUGFAIL rd.retry=5 ro console=ttyS0,115200n81 selinux=0 init=/sbin/init rd.debug systemd.log_target=console loglevel=7" \
++                      -append "panic=1 systemd.crash_reboot rd.shell=0 $cmdline $DEBUGFAIL rd.retry=5 ro console=ttyS0,115200n81 selinux=0 init=/sbin/init rd.debug systemd.log_target=console loglevel=7" \
+                       -initrd "$TESTDIR"/initramfs.testing
+ 
+     { read OK; read IFACES; } < "$TESTDIR"/client.img
+diff --git a/test/TEST-70-BONDBRIDGETEAMVLAN/test.sh b/test/TEST-70-BONDBRIDGETEAMVLAN/test.sh
+index 8c11a7d3..5618baee 100755
+--- a/test/TEST-70-BONDBRIDGETEAMVLAN/test.sh
++++ b/test/TEST-70-BONDBRIDGETEAMVLAN/test.sh
+@@ -31,7 +31,7 @@ run_server() {
+         ${SERIAL:--serial file:"$TESTDIR"/server.log} \
+         -watchdog i6300esb -watchdog-action poweroff \
+         -no-reboot \
+-        -append "panic=1 loglevel=7 root=/dev/sda rootfstype=ext3 rw console=ttyS0,115200n81 selinux=0 rd.debug" \
++        -append "panic=1 systemd.crash_reboot loglevel=7 root=/dev/sda rootfstype=ext3 rw console=ttyS0,115200n81 selinux=0 rd.debug" \
+         -initrd "$TESTDIR"/initramfs.server \
+         -pidfile "$TESTDIR"/server.pid -daemonize || return 1
+     chmod 644 -- "$TESTDIR"/server.pid || return 1
+@@ -79,7 +79,7 @@ client_test() {
+             $nic3 -device e1000,mac=52:54:00:12:34:05,netdev=n3 \
+             -watchdog i6300esb -watchdog-action poweroff \
+             -no-reboot \
+-            -append "panic=1 $cmdline rd.debug $DEBUGFAIL rd.retry=5 rw console=ttyS0,115200n81 selinux=0 init=/sbin/init" \
++            -append "panic=1 systemd.crash_reboot $cmdline rd.debug $DEBUGFAIL rd.retry=5 rw console=ttyS0,115200n81 selinux=0 init=/sbin/init" \
+             -initrd "$TESTDIR"/initramfs.testing
+     else
+         $testdir/run-qemu \
+@@ -95,7 +95,7 @@ client_test() {
+             -net nic,vlan=3,macaddr=52:54:00:12:34:05,model=e1000 \
+             -watchdog i6300esb -watchdog-action poweroff \
+             -no-reboot \
+-            -append "panic=1 $cmdline rd.debug $DEBUGFAIL rd.retry=5 rw console=ttyS0,115200n81 selinux=0 init=/sbin/init" \
++            -append "panic=1 systemd.crash_reboot $cmdline rd.debug $DEBUGFAIL rd.retry=5 rw console=ttyS0,115200n81 selinux=0 init=/sbin/init" \
+             -initrd "$TESTDIR"/initramfs.testing
+     fi
+ 
+

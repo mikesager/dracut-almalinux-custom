@@ -1,0 +1,43 @@
+From b59ae228851713f645751742136e34b854b0712a Mon Sep 17 00:00:00 2001
+From: Harald Hoyer <harald@redhat.com>
+Date: Thu, 10 Nov 2016 13:57:26 +0100
+Subject: [PATCH] test/test-rpms.txt: add list of rpms to install
+
+(cherry picked from commit f432d367fc4fa7558761cb9bb4229e6c027bfa31)
+---
+ test/test-rpms.txt | 26 ++++++++++++++++++++++++++
+ 1 file changed, 26 insertions(+)
+
+diff --git a/test/test-rpms.txt b/test/test-rpms.txt
+new file mode 100644
+index 00000000..1723d8e9
+--- /dev/null
++++ b/test/test-rpms.txt
+@@ -0,0 +1,26 @@
++dash
++bridge-utils
++asciidoc
++mdadm
++lvm2
++dmraid
++cryptsetup
++nfs-utils
++nbd
++dhcp-server
++scsi-target-utils
++iscsi-initiator-utils
++net-tools
++strace
++syslinux
++python-imgcreate
++genisoimage
++btrfs-progs
++bridge-utils
++kmod-devel
++gcc
++bzip2
++xz
++tar
++wget
++rpm-build
+

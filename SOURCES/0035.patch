@@ -1,0 +1,27 @@
+From d9bf0c38be49199724abe1d18bc1c2686e6f0c88 Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Thu, 27 Jun 2019 16:20:32 +0200
+Subject: [PATCH] travis: run TEST-14-IMSM on Fedora 29
+
+Systemd in Fedora 30 is broken at the moment.
+Fix: https://github.com/systemd/systemd/pull/12872/
+
+(cherry picked from commit 7a2503ab8cec9473ad6dacf4f48b17344219f3c0)
+---
+ .travis.yml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/.travis.yml b/.travis.yml
+index efb0df1b..de0af438 100644
+--- a/.travis.yml
++++ b/.travis.yml
+@@ -19,7 +19,7 @@ env:
+   - IMAGE=latest TESTS=10
+   - IMAGE=latest TESTS=11
+   - IMAGE=latest TESTS=13
+-  - IMAGE=latest TESTS=14
++  - IMAGE=29 TESTS=14
+   - IMAGE=latest TESTS=15
+   - IMAGE=latest TESTS=17
+ 
+

@@ -1,0 +1,58 @@
+From d6d50a239eebf9da13a0d7892df00a0e725ef9d6 Mon Sep 17 00:00:00 2001
+From: Jonathan Lebon <jonathan@jlebon.com>
+Date: Wed, 19 Feb 2020 10:44:24 -0500
+Subject: [PATCH] network-legacy/ifup: fix ip=dhcp,dhcp6 setup_net logic
+
+Previously, we were doing `setup_net` from `ifup` for any setup that
+wasn't DHCP, since those are already taken care of by `dhclient-script`.
+
+The issue is that the case-statement we use to detect this doesn't catch
+options like `ip=dhcp,dhcp6`.
+
+Fix this by reworking the logic here to just check if a
+`setup_net_$netif.sh` hook exists. If so, then we know that `setup_net`
+will be called for this interface later.
+
+This was causing issues in RHCOS which now ships with `ip=dhcp,dhcp6` to
+support IPv6 environments[1]. The code here would make us do `setup_net`
+pre-emptively which IIUC would then cause the initqueue to finish
+earlier even if we had more udev netif events to process.
+
+[1] https://github.com/coreos/coreos-assembler/pull/1067
+
+Resolves: https://bugzilla.redhat.com/show_bug.cgi?id=1803926
+(cherry picked from commit 4985aa8c6e89451996e659a39fec7646e9e25f76)
+
+Cherry-picked from: 4985aa8c6e89451996e659a39fec7646e9e25f76
+Resolves: #1807395
+---
+ modules.d/35network-legacy/ifup.sh | 11 +++++------
+ 1 file changed, 5 insertions(+), 6 deletions(-)
+
+diff --git a/modules.d/35network-legacy/ifup.sh b/modules.d/35network-legacy/ifup.sh
+index eb7d2eb4..61838741 100755
+--- a/modules.d/35network-legacy/ifup.sh
++++ b/modules.d/35network-legacy/ifup.sh
+@@ -453,17 +453,16 @@ for p in $(getargs ip=); do
+             > /tmp/net.$(cat /sys/class/net/${netif}/address).up
+         fi
+ 
+-        case $autoconf in
+-            dhcp|on|any|dhcp6)
+-            ;;
+-            *)
++        # and finally, finish interface set up if there isn't already a script
++        # to do so (which is the case in the dhcp path)
++        if [ ! -e $hookdir/initqueue/setup_net_$netif.sh ]; then
+                 setup_net $netif
+                 source_hook initqueue/online $netif
+                 if [ -z "$manualup" ]; then
+                     /sbin/netroot $netif
+                 fi
+-                ;;
+-        esac
++        fi
++
+         exit $ret
+     fi
+ done

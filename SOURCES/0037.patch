@@ -1,0 +1,53 @@
+From d8f0e52ac7d05c364ca24d2058c970e5e03f82ff Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Fri, 30 Aug 2019 16:16:51 +0200
+Subject: [PATCH] all: remove debugging leftovers
+
+Accidentally folded into commit e671c3a06a7e5 ('95iscsi/module-setup.sh:
+do not require 'hostname' anymore').
+---
+ modules.d/40network/netroot.sh               | 2 +-
+ modules.d/98dracut-systemd/dracut-cmdline.sh | 2 +-
+ modules.d/99base/init.sh                     | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/modules.d/40network/netroot.sh b/modules.d/40network/netroot.sh
+index 654cfc72..207364cd 100755
+--- a/modules.d/40network/netroot.sh
++++ b/modules.d/40network/netroot.sh
+@@ -66,7 +66,7 @@ if [ -z "$2" ]; then
+ 
+     # Check: do we really know how to handle (net)root?
+     [ -z "$root" ] && die "No or empty root= argument"
+-    [ -z "$rootok" ] && die "X2 Don't know how to handle 'root=$root'"
++    [ -z "$rootok" ] && die "Don't know how to handle 'root=$root'"
+ 
+     handler=${netroot%%:*}
+     handler=${handler%%4}
+diff --git a/modules.d/98dracut-systemd/dracut-cmdline.sh b/modules.d/98dracut-systemd/dracut-cmdline.sh
+index 89c52d13..bff9435a 100755
+--- a/modules.d/98dracut-systemd/dracut-cmdline.sh
++++ b/modules.d/98dracut-systemd/dracut-cmdline.sh
+@@ -76,7 +76,7 @@ case "${root}${root_unset}" in
+ esac
+ 
+ [ -z "${root}${root_unset}" ] && die "Empty root= argument"
+-[ -z "$rootok" ] && die "X1 Don't know how to handle 'root=$root'"
++[ -z "$rootok" ] && die "Don't know how to handle 'root=$root'"
+ 
+ export root rflags fstype netroot NEWROOT
+ 
+diff --git a/modules.d/99base/init.sh b/modules.d/99base/init.sh
+index 3e20069f..e4f7cff1 100755
+--- a/modules.d/99base/init.sh
++++ b/modules.d/99base/init.sh
+@@ -136,7 +136,7 @@ getarg 'rd.break=cmdline' -d 'rdbreak=cmdline' && emergency_shell -n cmdline "Br
+ source_hook cmdline
+ 
+ [ -z "$root" ] && die "No or empty root= argument"
+-[ -z "$rootok" ] && die "X0 Don't know how to handle 'root=$root'"
++[ -z "$rootok" ] && die "Don't know how to handle 'root=$root'"
+ 
+ export root rflags fstype netroot NEWROOT
+ 
+

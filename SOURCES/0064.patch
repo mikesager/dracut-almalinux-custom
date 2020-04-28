@@ -1,0 +1,39 @@
+From 86d48f5c45d2d2c19cb575fa377763c069e57b8a Mon Sep 17 00:00:00 2001
+From: Ondrej Dubaj <odubaj@redhat.com>
+Date: Thu, 29 Aug 2019 14:31:06 +0200
+Subject: [PATCH] added debug-shell to initrd in systemd version >= 240
+
+---
+ dracut.spec                         | 2 +-
+ modules.d/00systemd/module-setup.sh | 4 ++++
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+
+diff --git a/dracut.spec b/dracut.spec
+index 92c7f7bf..0f7eb4bf 100644
+--- a/dracut.spec
++++ b/dracut.spec
+@@ -88,7 +88,7 @@ Recommends: hardlink
+ Recommends: pigz
+ Recommends: kpartx
+ Requires: util-linux >= 2.21
+-Requires: systemd >= 219
++Requires: systemd >= 239-23
+ Requires: systemd-udev >= 219
+ Requires: procps-ng
+ %else
+diff --git a/modules.d/00systemd/module-setup.sh b/modules.d/00systemd/module-setup.sh
+index ed177826..e4a3f323 100755
+--- a/modules.d/00systemd/module-setup.sh
++++ b/modules.d/00systemd/module-setup.sh
+@@ -31,6 +31,10 @@ install() {
+         exit 1
+     fi
+ 
++    inst_multiple -o \
++        $systemdutildir/system-generators/systemd-debug-generator \
++        $systemdsystemunitdir/debug-shell.service
++
+     inst_multiple -o \
+         $systemdutildir/systemd \
+         $systemdutildir/systemd-coredump \
+

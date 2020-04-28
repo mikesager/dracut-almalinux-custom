@@ -1,0 +1,115 @@
+From 08961eef2ad09e4ce38ee034baf4e8c2b3934cd1 Mon Sep 17 00:00:00 2001
+From: Benjamin Marzinski <bmarzins@redhat.com>
+Date: Tue, 3 Sep 2019 10:44:36 -0500
+Subject: [PATCH] modules.d: fix udev rules detection of multipath devices
+
+Starting with the 0.7.7 release of the multipath tools, the multipath
+udev rules always set a value in ENV{DM_MULTIPATH_DEVICE_PATH} for any
+device that multipath scans. A value of 0 means that the device is not
+claimed by multipath, and a value of 1 means that it is. Because of
+this, udev rules that check ENV{DM_MULTIPATH_DEVICE_PATH}=="?*" will
+always return True, and act as if every scanned device is claimed by
+multipath. Checking ENV{DM_MULTIPATH_DEVICE_PATH}=="1" will work
+correctly for both the old and new versions of the multipath tools.
+---
+ modules.d/90dm/59-persistent-storage-dm.rules      | 2 +-
+ modules.d/90dmraid/61-dmraid-imsm.rules            | 2 +-
+ modules.d/90lvm/64-lvm.rules                       | 2 +-
+ modules.d/90mdraid/59-persistent-storage-md.rules  | 2 +-
+ modules.d/90mdraid/65-md-incremental-imsm.rules    | 2 +-
+ modules.d/95udev-rules/59-persistent-storage.rules | 2 +-
+ modules.d/95udev-rules/61-persistent-storage.rules | 2 +-
+ 7 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/modules.d/90dm/59-persistent-storage-dm.rules b/modules.d/90dm/59-persistent-storage-dm.rules
+index 73b09376..2be11227 100644
+--- a/modules.d/90dm/59-persistent-storage-dm.rules
++++ b/modules.d/90dm/59-persistent-storage-dm.rules
+@@ -1,7 +1,7 @@
+ SUBSYSTEM!="block", GOTO="dm_end"
+ ACTION!="add|change", GOTO="dm_end"
+ # Also don't process disks that are slated to be a multipath device
+-ENV{DM_MULTIPATH_DEVICE_PATH}=="?*", GOTO="dm_end"
++ENV{DM_MULTIPATH_DEVICE_PATH}=="1", GOTO="dm_end"
+ 
+ KERNEL!="dm-[0-9]*", GOTO="dm_end"
+ ACTION=="add", GOTO="dm_end"
+diff --git a/modules.d/90dmraid/61-dmraid-imsm.rules b/modules.d/90dmraid/61-dmraid-imsm.rules
+index 72267d3c..8a6b215e 100644
+--- a/modules.d/90dmraid/61-dmraid-imsm.rules
++++ b/modules.d/90dmraid/61-dmraid-imsm.rules
+@@ -5,7 +5,7 @@
+ SUBSYSTEM!="block", GOTO="dm_end"
+ ACTION!="add|change", GOTO="dm_end"
+ # Also don't process disks that are slated to be a multipath device
+-ENV{DM_MULTIPATH_DEVICE_PATH}=="?*", GOTO="dm_end"
++ENV{DM_MULTIPATH_DEVICE_PATH}=="1", GOTO="dm_end"
+ 
+ ENV{ID_FS_TYPE}=="linux_raid_member", GOTO="dm_end"
+ 
+diff --git a/modules.d/90lvm/64-lvm.rules b/modules.d/90lvm/64-lvm.rules
+index 3ce0c1f6..65f65249 100644
+--- a/modules.d/90lvm/64-lvm.rules
++++ b/modules.d/90lvm/64-lvm.rules
+@@ -7,7 +7,7 @@
+ SUBSYSTEM!="block", GOTO="lvm_end"
+ ACTION!="add|change", GOTO="lvm_end"
+ # Also don't process disks that are slated to be a multipath device
+-ENV{DM_MULTIPATH_DEVICE_PATH}=="?*", GOTO="lvm_end"
++ENV{DM_MULTIPATH_DEVICE_PATH}=="1", GOTO="lvm_end"
+ KERNEL=="dm-[0-9]*", ACTION=="add", GOTO="lvm_end"
+ ENV{ID_FS_TYPE}!="LVM?_member", GOTO="lvm_end"
+ 
+diff --git a/modules.d/90mdraid/59-persistent-storage-md.rules b/modules.d/90mdraid/59-persistent-storage-md.rules
+index 6ef858aa..96b10108 100644
+--- a/modules.d/90mdraid/59-persistent-storage-md.rules
++++ b/modules.d/90mdraid/59-persistent-storage-md.rules
+@@ -1,7 +1,7 @@
+ SUBSYSTEM!="block", GOTO="md_end"
+ ACTION!="add|change", GOTO="md_end"
+ # Also don't process disks that are slated to be a multipath device
+-ENV{DM_MULTIPATH_DEVICE_PATH}=="?*", GOTO="md_end"
++ENV{DM_MULTIPATH_DEVICE_PATH}=="1", GOTO="md_end"
+ 
+ KERNEL!="md[0-9]*|md_d[0-9]*|md/*", KERNEL!="md*", GOTO="md_end"
+ 
+diff --git a/modules.d/90mdraid/65-md-incremental-imsm.rules b/modules.d/90mdraid/65-md-incremental-imsm.rules
+index d66dd012..52f5b195 100644
+--- a/modules.d/90mdraid/65-md-incremental-imsm.rules
++++ b/modules.d/90mdraid/65-md-incremental-imsm.rules
+@@ -9,7 +9,7 @@ KERNEL=="md*", ENV{ID_FS_TYPE}!="linux_raid_member", GOTO="md_end"
+ KERNEL=="md*", ACTION!="change", GOTO="md_end"
+ 
+ # Also don't process disks that are slated to be a multipath device
+-ENV{DM_MULTIPATH_DEVICE_PATH}=="?*", GOTO="md_end"
++ENV{DM_MULTIPATH_DEVICE_PATH}=="1", GOTO="md_end"
+ 
+ ENV{ID_FS_TYPE}=="ddf_raid_member|isw_raid_member|linux_raid_member", GOTO="md_try"
+ GOTO="md_end"
+diff --git a/modules.d/95udev-rules/59-persistent-storage.rules b/modules.d/95udev-rules/59-persistent-storage.rules
+index 47ff6edd..8d8650f7 100644
+--- a/modules.d/95udev-rules/59-persistent-storage.rules
++++ b/modules.d/95udev-rules/59-persistent-storage.rules
+@@ -1,7 +1,7 @@
+ SUBSYSTEM!="block", GOTO="ps_end"
+ ACTION!="add|change", GOTO="ps_end"
+ # Also don't process disks that are slated to be a multipath device
+-ENV{DM_MULTIPATH_DEVICE_PATH}=="?*", GOTO="ps_end"
++ENV{DM_MULTIPATH_DEVICE_PATH}=="1", GOTO="ps_end"
+ 
+ KERNEL=="cciss[0-9]*", IMPORT BLKID
+ KERNEL=="nbd[0-9]*", IMPORT BLKID
+diff --git a/modules.d/95udev-rules/61-persistent-storage.rules b/modules.d/95udev-rules/61-persistent-storage.rules
+index 37148b07..895ecebd 100644
+--- a/modules.d/95udev-rules/61-persistent-storage.rules
++++ b/modules.d/95udev-rules/61-persistent-storage.rules
+@@ -1,7 +1,7 @@
+ SUBSYSTEM!="block", GOTO="pss_end"
+ ACTION!="add|change", GOTO="pss_end"
+ # Also don't process disks that are slated to be a multipath device
+-ENV{DM_MULTIPATH_DEVICE_PATH}=="?*", GOTO="pss_end"
++ENV{DM_MULTIPATH_DEVICE_PATH}=="1", GOTO="pss_end"
+ 
+ ACTION=="change", KERNEL=="dm-[0-9]*", ENV{DM_UDEV_DISABLE_OTHER_RULES_FLAG}!="1", GOTO="do_pss"
+ KERNEL=="cciss[0-9]*", GOTO="do_pss"
+

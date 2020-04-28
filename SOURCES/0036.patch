@@ -1,0 +1,27 @@
+From c60f4fc027272c221a887128070ac89547b6ecc3 Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Thu, 27 Jun 2019 16:22:04 +0200
+Subject: [PATCH] travis: run TEST-13-ENC-RAID-LVM on Fedora 29
+
+Systemd in Fedora 30 is broken at the moment.
+Fix: https://github.com/systemd/systemd/pull/12897
+
+(cherry picked from commit 8238f41b34777c3c75b03a9b598d4b9e1c7bf911)
+---
+ .travis.yml | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/.travis.yml b/.travis.yml
+index de0af438..364078cf 100644
+--- a/.travis.yml
++++ b/.travis.yml
+@@ -18,7 +18,7 @@ env:
+   - IMAGE=latest TESTS=04
+   - IMAGE=latest TESTS=10
+   - IMAGE=latest TESTS=11
+-  - IMAGE=latest TESTS=13
++  - IMAGE=29 TESTS=13
+   - IMAGE=29 TESTS=14
+   - IMAGE=latest TESTS=15
+   - IMAGE=latest TESTS=17
+

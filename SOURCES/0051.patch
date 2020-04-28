@@ -1,0 +1,19 @@
+From 81babdedec8c6f7b23bbf0e3418126c4f9e5e15f Mon Sep 17 00:00:00 2001
+From: Frantisek Sumsal <frantisek@sumsal.cz>
+Date: Tue, 10 Sep 2019 16:46:55 +0200
+Subject: [PATCH] test-rpms.txt: add util-linux into the dependency list
+
+---
+ test/test-rpms.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/test/test-rpms.txt b/test/test-rpms.txt
+index 95376bd2..02577c8a 100644
+--- a/test/test-rpms.txt
++++ b/test/test-rpms.txt
+@@ -26,3 +26,4 @@ xz
+ tar
+ wget
+ rpm-build
++util-linux
+

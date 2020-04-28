@@ -1,0 +1,31 @@
+From 7164155795f3f257cd119846de0b2a802a6a52c5 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Thu, 9 Jan 2020 10:49:52 +0100
+Subject: [PATCH] network-legacy/ifup: dhclient should be started in oneshot
+ mode
+
+since we handle the retries explicitly via rd.net.dhcp.retry
+
+Without -1 if user sets ip=dhcp6 and there is no dhcp on the network,
+dhclient seems to wait indefinitely, ignoring rd.net.timeout.dhcp
+
+(cherry picked from commit 2181c80c91f05bfae5e50de2f502e363b0219bae)
+
+Resolves: #1787620
+---
+ modules.d/35network-legacy/ifup.sh | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/modules.d/35network-legacy/ifup.sh b/modules.d/35network-legacy/ifup.sh
+index b4f5bf10..bfb57ad5 100755
+--- a/modules.d/35network-legacy/ifup.sh
++++ b/modules.d/35network-legacy/ifup.sh
+@@ -52,6 +52,7 @@ do_dhcp() {
+         dhclient "$@" \
+                  ${_timeout:+-timeout $_timeout} \
+                  -q \
++                 -1 \
+                  -cf /etc/dhclient.conf \
+                  -pf /tmp/dhclient.$netif.pid \
+                  -lf /tmp/dhclient.$netif.lease \
+

@@ -1,0 +1,23 @@
+From fe44aa1b14f427245bdfb2026f2211a19b52f5e3 Mon Sep 17 00:00:00 2001
+From: Harald Hoyer <harald@redhat.com>
+Date: Fri, 11 Nov 2016 12:34:00 +0100
+Subject: [PATCH] test-rpms.txt: add dhcp
+
+(cherry picked from commit a081e072d894c91fcf037e267cb6793c4b0356c4)
+---
+ test/test-rpms.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/test/test-rpms.txt b/test/test-rpms.txt
+index 10596da7..95376bd2 100644
+--- a/test/test-rpms.txt
++++ b/test/test-rpms.txt
+@@ -8,6 +8,7 @@ cryptsetup
+ nfs-utils
+ nbd
+ dhcp-server
++dhcp
+ scsi-target-utils
+ iscsi-initiator-utils
+ net-tools
+

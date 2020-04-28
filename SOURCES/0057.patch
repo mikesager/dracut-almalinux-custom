@@ -1,0 +1,25 @@
+From 346e57c1b6af4e2cfdbaae64941f2f3b8454a944 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Fri, 29 Nov 2019 13:29:23 +0100
+Subject: [PATCH] always include sg module
+
+RHEL-only
+Resolves:#1579763
+---
+ modules.d/00systemd/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/00systemd/module-setup.sh b/modules.d/00systemd/module-setup.sh
+index 1ed4b34f..ed177826 100755
+--- a/modules.d/00systemd/module-setup.sh
++++ b/modules.d/00systemd/module-setup.sh
+@@ -18,7 +18,7 @@ depends() {
+ }
+ 
+ installkernel() {
+-    hostonly='' instmods autofs4 ipv6 algif_hash hmac sha256
++    hostonly='' instmods autofs4 ipv6 algif_hash hmac sha256 sg
+     instmods -s efivarfs
+ }
+ 
+

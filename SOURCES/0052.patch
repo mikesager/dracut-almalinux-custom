@@ -1,0 +1,33 @@
+From 7843bc52777683f6a4ef953d8dde7171ff3b911c Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Wed, 24 Jul 2019 16:45:19 +0200
+Subject: [PATCH] [RHEL] network: default to network-legacy even in presence of
+ nm-initrd-generator
+
+In RHEL 8.2, NetworkManager will ship with the nm-initrd-generator, but
+before the install bits fall into place we want to default to network-legacy.
+
+This unblocks the enablement of the NetworkManager bits and is intended
+to be reverted later on.
+---
+ modules.d/40network/module-setup.sh | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/modules.d/40network/module-setup.sh b/modules.d/40network/module-setup.sh
+index 8e2a74a3..bf252eb7 100755
+--- a/modules.d/40network/module-setup.sh
++++ b/modules.d/40network/module-setup.sh
+@@ -8,9 +8,9 @@ check() {
+ # called by dracut
+ depends() {
+     echo -n "kernel-network-modules "
+-    if ! dracut_module_included "network-legacy" && [ -x "/usr/libexec/nm-initrd-generator" ] ; then
+-        echo "network-manager"
+-    else
++    # RHEL 8.1: Default to network-legacy unless the user chose
++    # network-manager manually
++    if ! dracut_module_included "network-manager" ; then
+         echo "network-legacy"
+     fi
+     return 0
+

@@ -5,11 +5,11 @@
 # strip the automatically generated dep here and instead co-own the
 # directory.
 %global __requires_exclude pkg-config
-%define dist_free_release 27.git20190906
+%define dist_free_release 70.git20200228
 
 Name: dracut
 Version: 049
-Release: %{dist_free_release}%{?dist}.1
+Release: %{dist_free_release}%{?dist}
 
 Summary: Initramfs generator using udev
 %if 0%{?fedora} || 0%{?rhel}
@@ -58,6 +58,45 @@ Patch27: 0027.patch
 Patch28: 0028.patch
 Patch29: 0029.patch
 Patch30: 0030.patch
+Patch31: 0031.patch
+Patch32: 0032.patch
+Patch33: 0033.patch
+Patch34: 0034.patch
+Patch35: 0035.patch
+Patch36: 0036.patch
+Patch37: 0037.patch
+Patch38: 0038.patch
+Patch39: 0039.patch
+Patch40: 0040.patch
+Patch41: 0041.patch
+Patch42: 0042.patch
+Patch43: 0043.patch
+Patch44: 0044.patch
+Patch45: 0045.patch
+Patch46: 0046.patch
+Patch47: 0047.patch
+Patch48: 0048.patch
+Patch49: 0049.patch
+Patch50: 0050.patch
+Patch51: 0051.patch
+Patch52: 0052.patch
+Patch53: 0053.patch
+Patch54: 0054.patch
+Patch55: 0055.patch
+Patch56: 0056.patch
+Patch57: 0057.patch
+Patch58: 0058.patch
+Patch59: 0059.patch
+Patch60: 0060.patch
+Patch61: 0061.patch
+Patch62: 0062.patch
+Patch63: 0063.patch
+Patch64: 0064.patch
+Patch65: 0065.patch
+Patch66: 0066.patch
+Patch67: 0067.patch
+Patch68: 0068.patch
+Patch69: 0069.patch
 
 Source1: https://www.gnu.org/licenses/lgpl-2.1.txt
 
@@ -119,7 +158,7 @@ Recommends: hardlink
 Recommends: pigz
 Recommends: kpartx
 Requires: util-linux >= 2.21
-Requires: systemd >= 219
+Requires: systemd >= 239-23
 Requires: systemd-udev >= 219
 Requires: procps-ng
 %else
@@ -511,8 +550,36 @@ install -m 0755 51-dracut-rescue-postinst.sh $RPM_BUILD_ROOT%{_sysconfdir}/kerne
 %endif
 
 %changelog
-* Wed Nov 06 2019 Lukas Nykryn <lnykryn@redhat.com> - 049-27.git20190906.1
+* Fri Feb 28 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-70.git20200228
+- network-legacy/ifup: fix ip=dhcp,dhcp6 setup_net logic
+
+* Tue Feb 11 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-68.git20200211
+- Revert "wait for IPv6 RA if using none/static IPv6 assignment"
+- dhclient-script: ipv6 uses different variables for nameservers
+- 40network: bump rd.net.timeout.carrier to 10 seconds
+
+* Wed Feb 05 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-65.git20200205
+- added debug-shell to initrd
+
+* Thu Jan 23 2020 Harald Hoyer <harald@redhat.com> - 049-64.git20200123
+- network-legacy/ifup: nuke pid and lease files if dhclient failed
+Resolves: rhbz#1787620
+
+* Tue Jan 14 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-63.git20200114
+- network-legacy/ifup: fix typo when calling dhclient --timeout
+- network-legacy/ifup: dhclient should be started in oneshot mode
+- modules/network-manager: Install `ip`
+
+* Fri Nov 29 2019 Lukas Nykryn <lnykryn@redhat.com> - 049-60.git20191129
+- 99squash: Only start the cleaner on switch-root
+- net-lib: check if addr exists before checking for dad state
+- always include sg module
+
+* Thu Oct 31 2019 Lukas Nykryn <lnykryn@redhat.com> - 049-57.git20191031
 - various fixes to adapt to RHCOS and FCOS
+
+* Tue Oct 01 2019 Lukas Nykryn <lnykryn@redhat.com> - 049-53.git20191001
+- apply patches to allow enablement of nm-initrd-generator
 
 * Fri Sep 06 2019 Lukas Nykryn <lnykryn@redhat.com> - 049-27.git20190906
 - modules.d: fix udev rules detection of multipath devices

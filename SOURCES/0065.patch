@@ -1,0 +1,32 @@
+From 543b1cff3c84af062da4d27ba81a9d394f44e4b6 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Tue, 11 Feb 2020 14:14:20 +0100
+Subject: [PATCH] dhclient-script: ipv6 uses different variables for
+ nameservers
+
+new_domain_name_servers and new_domain_search is only provided vit IPv4
+
+see: https://src.fedoraproject.org/rpms/dhcp/blob/HEAD/f/dhclient-script#_148
+(cherry picked from commit 962310483f473dbc8d71d70ba464d273b9808d31)
+
+Resolves: #1795276
+---
+ modules.d/35network-legacy/dhclient-script.sh | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/modules.d/35network-legacy/dhclient-script.sh b/modules.d/35network-legacy/dhclient-script.sh
+index fc6ed0a3..f1a60005 100755
+--- a/modules.d/35network-legacy/dhclient-script.sh
++++ b/modules.d/35network-legacy/dhclient-script.sh
+@@ -75,8 +75,8 @@ setup_interface() {
+ 
+ setup_interface6() {
+     domain=$new_domain_name
+-    search=$(printf -- "$new_domain_search")
+-    namesrv=$new_domain_name_servers
++    search=$(printf -- "$new_dhcp6_domain_search")
++    namesrv=$new_dhcp6_name_servers
+     hostname=$new_host_name
+     [ -n "$new_dhcp_lease_time" ] && lease_time=$new_dhcp_lease_time
+     [ -n "$new_max_life" ] && lease_time=$new_max_life
+

@@ -1,0 +1,44 @@
+From 8061a432844d1f780d9b18144def0faef0145c0c Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Mon, 7 Oct 2019 16:48:09 +0200
+Subject: [PATCH] net-lib: check if addr exists before checking for dad state
+
+Before we check if dad is done we should first make sure,
+that there is a link local address where we do the check.
+
+Due to this issue, on ipv6 only setups sometimes dhclient started
+asking for ip address, before the link local address was present
+and failed immediately.
+
+(cherry picked from commit daa49cc2216d6387541ef36e8427081f6b02f224)
+
+Resolves: #1765014
+---
+ modules.d/40network/net-lib.sh | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/modules.d/40network/net-lib.sh b/modules.d/40network/net-lib.sh
+index ad78d225..dcb53804 100755
+--- a/modules.d/40network/net-lib.sh
++++ b/modules.d/40network/net-lib.sh
+@@ -653,7 +653,8 @@ wait_for_ipv6_dad_link() {
+     timeout=$(($timeout*10))
+ 
+     while [ $cnt -lt $timeout ]; do
+-        [ -z "$(ip -6 addr show dev "$1" scope link tentative)" ] \
++        [ -n "$(ip -6 addr show dev "$1" scope link)" ] \
++            && [ -z "$(ip -6 addr show dev "$1" scope link tentative)" ] \
+             && [ -n "$(ip -6 route list proto ra dev "$1" | grep ^default)" ] \
+             && return 0
+         [ -n "$(ip -6 addr show dev "$1" scope link dadfailed)" ] \
+@@ -671,7 +672,8 @@ wait_for_ipv6_dad() {
+     timeout=$(($timeout*10))
+ 
+     while [ $cnt -lt $timeout ]; do
+-        [ -z "$(ip -6 addr show dev "$1" tentative)" ] \
++        [ -n "$(ip -6 addr show dev "$1")" ] \
++            && [ -z "$(ip -6 addr show dev "$1" tentative)" ] \
+             && [ -n "$(ip -6 route list proto ra dev "$1" | grep ^default)" ] \
+             && return 0
+         [ -n "$(ip -6 addr show dev "$1" dadfailed)" ] \
+

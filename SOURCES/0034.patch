@@ -1,0 +1,229 @@
+From a34b1baa6ca45b420399ec4cefe3cfe225c14dcf Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Tue, 11 Jun 2019 09:56:13 +0200
+Subject: [PATCH] test/{10,12,13,14,17,30,31}: increase the disk sizes
+
+On Fedora 30 the paritition sizes turn out to be too small again:
+
+  + mkdir -p /sysroot
+  + mount /dev/dracut/root /sysroot
+  + cp -a -t /sysroot /source/bin /source/dev /source/etc /source/lib /source/lib64 /source/proc /source/root /source/sbin /source/sys /source/tmp /source/usr /source/var
+  cp: error writing '/sysroot/usr/lib64/libkrb5.so.3.3': No space left on device
+  cp: error writing '/sysroot/usr/lib64/libkrb5support.so.0.1': No space left on device
+
+It turns out that there has been quite some size increase in some libraries,
+notably glibc, though not all -- some even shrunk, ruling out a toolchain
+problem. Here's are files over 1M we install on Fedora 30:
+
+   f29    f30
+  2.7M => 6.4M /usr/lib64/{libc-2.28.so => libc-2.29.so}
+  3.1M => 6.0M /usr/lib64/libcrypto.so.1.1.1c
+  2.0M => 3.5M /usr/lib64/{libm-2.28.so => libm-2.29.so}
+  2.9M => 2.8M /usr/lib/systemd/{libsystemd-shared-239.so => libsystemd-shared-241.so}
+  1.7M => 2.5M /usr/lib64/libunistring.so.2.1.0
+  2.3M => 2.4M /usr/lib64/bind9-export/libdns-export.so.1105.0.0
+  1.2M => 2.1M /usr/bin/bash
+  1.1M => 1.4M /usr/lib64/libkrb5.so.3.3
+  1.2M => 1.4M /usr/lib64/libgcrypt.so.20.2.4
+  612K => 1.1M /usr/lib64/libssl.so.1.1.1c
+
+This increases the image sizes to accomodate for this. There's probably
+little else we can do.
+
+(cherry picked from commit e318ba30fbd84d510a5bbb071d868e523d965869)
+---
+ test/TEST-10-RAID/create-root.sh         | 6 +++---
+ test/TEST-10-RAID/test.sh                | 2 +-
+ test/TEST-12-RAID-DEG/test.sh            | 6 +++---
+ test/TEST-13-ENC-RAID-LVM/create-root.sh | 6 +++---
+ test/TEST-13-ENC-RAID-LVM/test.sh        | 2 +-
+ test/TEST-14-IMSM/create-root.sh         | 6 +++---
+ test/TEST-14-IMSM/test.sh                | 4 ++--
+ test/TEST-17-LVM-THIN/create-root.sh     | 8 ++++----
+ test/TEST-17-LVM-THIN/test.sh            | 2 +-
+ test/TEST-30-ISCSI/test.sh               | 6 +++---
+ test/TEST-31-ISCSI-MULTI/test.sh         | 6 +++---
+ 11 files changed, 27 insertions(+), 27 deletions(-)
+
+diff --git a/test/TEST-10-RAID/create-root.sh b/test/TEST-10-RAID/create-root.sh
+index 7b5f2a76..af4cac0d 100755
+--- a/test/TEST-10-RAID/create-root.sh
++++ b/test/TEST-10-RAID/create-root.sh
+@@ -8,9 +8,9 @@ udevadm control --reload
+ # save a partition at the beginning for future flagging purposes
+ sfdisk /dev/sda <<EOF
+ ,4M
+-,25M
+-,25M
+-,25M
++,41M
++,41M
++,41M
+ EOF
+ udevadm settle
+ mdadm --create /dev/md0 --run --auto=yes --level=5 --raid-devices=3 /dev/sda2 /dev/sda3 /dev/sda4
+diff --git a/test/TEST-10-RAID/test.sh b/test/TEST-10-RAID/test.sh
+index 0beb26c3..07179a29 100755
+--- a/test/TEST-10-RAID/test.sh
++++ b/test/TEST-10-RAID/test.sh
+@@ -22,7 +22,7 @@ test_setup() {
+     DISKIMAGE=$TESTDIR/TEST-10-RAID-root.img
+     # Create the blank file to use as a root filesystem
+     rm -f -- $DISKIMAGE
+-    dd if=/dev/null of=$DISKIMAGE bs=1M seek=80
++    dd if=/dev/null of=$DISKIMAGE bs=1M seek=128
+ 
+     kernel=$KVERSION
+     # Create what will eventually be our root filesystem onto an overlay
+diff --git a/test/TEST-12-RAID-DEG/test.sh b/test/TEST-12-RAID-DEG/test.sh
+index c82cde1e..920baafd 100755
+--- a/test/TEST-12-RAID-DEG/test.sh
++++ b/test/TEST-12-RAID-DEG/test.sh
+@@ -59,9 +59,9 @@ test_setup() {
+     # Create the blank file to use as a root filesystem
+     rm -f -- $TESTDIR/root.ext2
+     dd if=/dev/null of=$TESTDIR/root.ext2 bs=1M seek=40
+-    dd if=/dev/null of=$TESTDIR/disk1.img bs=1M seek=20
+-    dd if=/dev/null of=$TESTDIR/disk2.img bs=1M seek=20
+-    dd if=/dev/null of=$TESTDIR/disk3.img bs=1M seek=20
++    dd if=/dev/null of=$TESTDIR/disk1.img bs=1M seek=35
++    dd if=/dev/null of=$TESTDIR/disk2.img bs=1M seek=35
++    dd if=/dev/null of=$TESTDIR/disk3.img bs=1M seek=35
+ 
+     kernel=$KVERSION
+     # Create what will eventually be our root filesystem onto an overlay
+diff --git a/test/TEST-13-ENC-RAID-LVM/create-root.sh b/test/TEST-13-ENC-RAID-LVM/create-root.sh
+index 72bc765f..13e65838 100755
+--- a/test/TEST-13-ENC-RAID-LVM/create-root.sh
++++ b/test/TEST-13-ENC-RAID-LVM/create-root.sh
+@@ -9,9 +9,9 @@ udevadm control --reload
+ # save a partition at the beginning for future flagging purposes
+ sfdisk /dev/sda <<EOF
+ ,4M
+-,25M
+-,25M
+-,25M
++,43M
++,43M
++,43M
+ EOF
+ udevadm settle
+ printf test >keyfile
+diff --git a/test/TEST-13-ENC-RAID-LVM/test.sh b/test/TEST-13-ENC-RAID-LVM/test.sh
+index 99324ce9..9ffe24b1 100755
+--- a/test/TEST-13-ENC-RAID-LVM/test.sh
++++ b/test/TEST-13-ENC-RAID-LVM/test.sh
+@@ -59,7 +59,7 @@ test_run() {
+ test_setup() {
+     # Create the blank file to use as a root filesystem
+     rm -f -- $TESTDIR/root.ext2
+-    dd if=/dev/null of=$TESTDIR/root.ext2 bs=1M seek=80
++    dd if=/dev/null of=$TESTDIR/root.ext2 bs=1M seek=134
+ 
+     kernel=$KVERSION
+     # Create what will eventually be our root filesystem onto an overlay
+diff --git a/test/TEST-14-IMSM/create-root.sh b/test/TEST-14-IMSM/create-root.sh
+index a0324c6f..0d10945b 100755
+--- a/test/TEST-14-IMSM/create-root.sh
++++ b/test/TEST-14-IMSM/create-root.sh
+@@ -32,9 +32,9 @@ sfdisk -g /dev/mapper/isw*Test0
+ # save a partition at the beginning for future flagging purposes
+ sfdisk --no-reread /dev/mapper/isw*Test0 <<EOF
+ ,4M
+-,20M
+-,20M
+-,20M
++,28M
++,28M
++,28M
+ EOF
+ 
+ udevadm settle
+diff --git a/test/TEST-14-IMSM/test.sh b/test/TEST-14-IMSM/test.sh
+index ed60f052..a3e52b53 100755
+--- a/test/TEST-14-IMSM/test.sh
++++ b/test/TEST-14-IMSM/test.sh
+@@ -53,8 +53,8 @@ test_setup() {
+     rm -f -- $TESTDIR/disk1
+     rm -f -- $TESTDIR/disk2
+     dd if=/dev/null of=$TESTDIR/root.ext2 bs=1M seek=1
+-    dd if=/dev/null of=$TESTDIR/disk1 bs=1M seek=80
+-    dd if=/dev/null of=$TESTDIR/disk2 bs=1M seek=80
++    dd if=/dev/null of=$TESTDIR/disk1 bs=1M seek=104
++    dd if=/dev/null of=$TESTDIR/disk2 bs=1M seek=104
+ 
+     kernel=$KVERSION
+     # Create what will eventually be our root filesystem onto an overlay
+diff --git a/test/TEST-17-LVM-THIN/create-root.sh b/test/TEST-17-LVM-THIN/create-root.sh
+index 0e52f879..6e09012e 100755
+--- a/test/TEST-17-LVM-THIN/create-root.sh
++++ b/test/TEST-17-LVM-THIN/create-root.sh
+@@ -8,16 +8,16 @@ udevadm control --reload
+ # save a partition at the beginning for future flagging purposes
+ sfdisk /dev/sda <<EOF
+ ,4M
+-,25M
+-,25M
+-,25M
++,29M
++,29M
++,29M
+ EOF
+ udevadm settle
+ for i in sda2 sda3 sda4; do
+ lvm pvcreate -ff  -y /dev/$i ;
+ done && \
+ lvm vgcreate dracut /dev/sda[234] && \
+-lvm lvcreate -l 16  -T dracut/mythinpool && \
++lvm lvcreate -l 17  -T dracut/mythinpool && \
+ lvm lvcreate -V1G -T dracut/mythinpool -n root && \
+ lvm vgchange -ay && \
+ mke2fs /dev/dracut/root && \
+diff --git a/test/TEST-17-LVM-THIN/test.sh b/test/TEST-17-LVM-THIN/test.sh
+index c13e9063..c7247c91 100755
+--- a/test/TEST-17-LVM-THIN/test.sh
++++ b/test/TEST-17-LVM-THIN/test.sh
+@@ -19,7 +19,7 @@ test_run() {
+ 
+ test_setup() {
+     # Create the blank file to use as a root filesystem
+-    dd if=/dev/null of=$TESTDIR/root.ext2 bs=1M seek=80
++    dd if=/dev/null of=$TESTDIR/root.ext2 bs=1M seek=92
+ 
+     kernel=$KVERSION
+     # Create what will eventually be our root filesystem onto an overlay
+diff --git a/test/TEST-30-ISCSI/test.sh b/test/TEST-30-ISCSI/test.sh
+index d5a6ba58..c126e3dd 100755
+--- a/test/TEST-30-ISCSI/test.sh
++++ b/test/TEST-30-ISCSI/test.sh
+@@ -109,9 +109,9 @@ test_setup() {
+     fi
+ 
+     # Create the blank file to use as a root filesystem
+-    dd if=/dev/null of=$TESTDIR/root.ext3 bs=1M seek=40
+-    dd if=/dev/null of=$TESTDIR/iscsidisk2.img bs=1M seek=40
+-    dd if=/dev/null of=$TESTDIR/iscsidisk3.img bs=1M seek=40
++    dd if=/dev/null of=$TESTDIR/root.ext3 bs=1M seek=45
++    dd if=/dev/null of=$TESTDIR/iscsidisk2.img bs=1M seek=45
++    dd if=/dev/null of=$TESTDIR/iscsidisk3.img bs=1M seek=45
+ 
+     kernel=$KVERSION
+     # Create what will eventually be our root filesystem onto an overlay
+diff --git a/test/TEST-31-ISCSI-MULTI/test.sh b/test/TEST-31-ISCSI-MULTI/test.sh
+index 20db2451..122c69e3 100755
+--- a/test/TEST-31-ISCSI-MULTI/test.sh
++++ b/test/TEST-31-ISCSI-MULTI/test.sh
+@@ -131,9 +131,9 @@ test_setup() {
+     fi
+ 
+     # Create the blank file to use as a root filesystem
+-    dd if=/dev/null of=$TESTDIR/root.ext3 bs=1M seek=40
+-    dd if=/dev/null of=$TESTDIR/iscsidisk2.img bs=1M seek=40
+-    dd if=/dev/null of=$TESTDIR/iscsidisk3.img bs=1M seek=40
++    dd if=/dev/null of=$TESTDIR/root.ext3 bs=1M seek=45
++    dd if=/dev/null of=$TESTDIR/iscsidisk2.img bs=1M seek=45
++    dd if=/dev/null of=$TESTDIR/iscsidisk3.img bs=1M seek=45
+ 
+     kernel=$KVERSION
+     # Create what will eventually be our root filesystem onto an overlay
+

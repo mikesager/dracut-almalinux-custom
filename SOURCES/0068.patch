@@ -1,0 +1,37 @@
+From fa15223b70c04de0fdbd209a4bb1cb74876f7cfb Mon Sep 17 00:00:00 2001
+From: Jonathan Lebon <jonathan@jlebon.com>
+Date: Wed, 19 Feb 2020 11:11:32 -0500
+Subject: [PATCH] network-legacy/ifup: drop redundant if-statement
+
+No need to check that `$ret` is 0, we're already running inside an
+if-statement block which checks this.
+
+(cherry picked from commit 7795fde44c54bfe753cc07999a4c2f9dd7e2820d)
+
+Resolves: #1807395
+---
+ modules.d/35network-legacy/ifup.sh | 10 ++++------
+ 1 file changed, 4 insertions(+), 6 deletions(-)
+
+diff --git a/modules.d/35network-legacy/ifup.sh b/modules.d/35network-legacy/ifup.sh
+index dd18d70b..eb7d2eb4 100755
+--- a/modules.d/35network-legacy/ifup.sh
++++ b/modules.d/35network-legacy/ifup.sh
+@@ -457,12 +457,10 @@ for p in $(getargs ip=); do
+             dhcp|on|any|dhcp6)
+             ;;
+             *)
+-                if [ $ret -eq 0 ]; then
+-                    setup_net $netif
+-                    source_hook initqueue/online $netif
+-                    if [ -z "$manualup" ]; then
+-                        /sbin/netroot $netif
+-                    fi
++                setup_net $netif
++                source_hook initqueue/online $netif
++                if [ -z "$manualup" ]; then
++                    /sbin/netroot $netif
+                 fi
+                 ;;
+         esac
+

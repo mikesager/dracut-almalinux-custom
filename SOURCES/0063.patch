@@ -1,0 +1,31 @@
+From 46a8b8e9e7f150c2a17d4adeacb25ccf003ec425 Mon Sep 17 00:00:00 2001
+From: Jonathan Lebon <jonathan@jlebon.com>
+Date: Tue, 21 Jan 2020 17:57:31 -0500
+Subject: [PATCH] network-legacy/ifup: nuke pid and lease files if dhclient
+ failed
+
+Otherwise we won't retry dhclient again on that interface. In
+FCOS/RHCOS, we want to bake in `ip=dhcp,dhcp6` so we automatically try
+getting a DHCPv6 lease if DHCPv4 failed.
+
+Related: https://bugzilla.redhat.com/show_bug.cgi?id=1793591
+(cherry picked from commit d0de58f23252a9da4a8badd71777e7c8418fa4b7)
+---
+ modules.d/35network-legacy/ifup.sh | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/modules.d/35network-legacy/ifup.sh b/modules.d/35network-legacy/ifup.sh
+index 16b950be..dd18d70b 100755
+--- a/modules.d/35network-legacy/ifup.sh
++++ b/modules.d/35network-legacy/ifup.sh
+@@ -62,6 +62,9 @@ do_dhcp() {
+         [ $_COUNT -lt $_DHCPRETRY ] && sleep 1
+     done
+     warn "dhcp for interface $netif failed"
++    # nuke those files since we failed; we might retry dhcp again if it's e.g.
++    # `ip=dhcp,dhcp6` and we check for the PID file at the top
++    rm -f /tmp/dhclient.$netif.{pid,lease}
+     return 1
+ }
+ 
+

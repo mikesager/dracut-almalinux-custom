@@ -1,0 +1,45 @@
+From 7b14ab060e50d0035e4c0b1979d49234aa8896b0 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Mon, 10 Feb 2020 14:03:30 +0100
+Subject: [PATCH] 40network: bump rd.net.timeout.carrier to 10 seconds
+
+On some devices kernel currently takes 5.2 seconds to detect carrier,
+so let's make the default in dracut bit more sensible.
+
+See also https://bugzilla.redhat.com/show_bug.cgi?id=1772010
+
+(cherry picked from commit 579fbb9fc4205dc216b9642238739d898d2ed02d)
+
+Resolves: #1798761
+---
+ dracut.cmdline.7.asc           | 2 +-
+ modules.d/40network/net-lib.sh | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/dracut.cmdline.7.asc b/dracut.cmdline.7.asc
+index 3cee5a00..ab9a24ad 100644
+--- a/dracut.cmdline.7.asc
++++ b/dracut.cmdline.7.asc
+@@ -645,7 +645,7 @@ NFS
+     Wait <seconds> until IPv6 automatic addresses are assigned. Default is 40 seconds.
+ 
+ **rd.net.timeout.carrier=**__<seconds>__::
+-    Wait <seconds> until carrier is recognized. Default is 5 seconds.
++    Wait <seconds> until carrier is recognized. Default is 10 seconds.
+ 
+ CIFS
+ ~~~
+diff --git a/modules.d/40network/net-lib.sh b/modules.d/40network/net-lib.sh
+index 0f3ca6a8..6babcccf 100755
+--- a/modules.d/40network/net-lib.sh
++++ b/modules.d/40network/net-lib.sh
+@@ -717,7 +717,7 @@ iface_has_carrier() {
+     interface="/sys/class/net/$interface"
+     [ -d "$interface" ] || return 2
+     local timeout="$(getargs rd.net.timeout.carrier=)"
+-    timeout=${timeout:-5}
++    timeout=${timeout:-10}
+     timeout=$(($timeout*10))
+ 
+     linkup "$1"
+

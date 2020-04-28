@@ -1,0 +1,26 @@
+From d20eb7b7b2a50f29ac02bd6b6d80113d495849ed Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Wed, 8 Jan 2020 16:20:29 +0100
+Subject: [PATCH] network-legacy/ifup: fix typo when calling dhclient --timeout
+
+(cherry picked from commit 212043f94dde1693d777e933945138747537f12f)
+
+Resolves: #1787620
+---
+ modules.d/35network-legacy/ifup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/35network-legacy/ifup.sh b/modules.d/35network-legacy/ifup.sh
+index bfb57ad5..16b950be 100755
+--- a/modules.d/35network-legacy/ifup.sh
++++ b/modules.d/35network-legacy/ifup.sh
+@@ -50,7 +50,7 @@ do_dhcp() {
+     while [ $_COUNT -lt $_DHCPRETRY ]; do
+         info "Starting dhcp for interface $netif"
+         dhclient "$@" \
+-                 ${_timeout:+-timeout $_timeout} \
++                 ${_timeout:+--timeout $_timeout} \
+                  -q \
+                  -1 \
+                  -cf /etc/dhclient.conf \
+

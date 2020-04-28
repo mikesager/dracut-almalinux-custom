@@ -1,0 +1,66 @@
+From 0f0b8c8f90cbcd56140e85b9997deda906c71118 Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Tue, 25 Jun 2019 17:39:57 +0200
+Subject: [PATCH] test/TEST-14-IMSM: detect failure to compose the test setup
+ root
+
+The dracut-root-block-created line should not be created if we fail to copy
+in the required files to sysroot. Let's turn on -e to trap failures and
+poweroff on them, like some other tests do.
+
+Also remove the &&. Not only it is unnecessary with -e, but defeats it.
+From bash(1):
+
+  The shell does not exit if the command that fails is [...] part of any
+  command executed in a && or || list except the command following the
+  final && or || [...]
+
+(cherry picked from commit c27ed38bb2986d31b08257782ce2b24a80415c6c)
+---
+ test/TEST-14-IMSM/create-root.sh | 23 +++++++++++++----------
+ 1 file changed, 13 insertions(+), 10 deletions(-)
+
+diff --git a/test/TEST-14-IMSM/create-root.sh b/test/TEST-14-IMSM/create-root.sh
+index f637ec88..a0324c6f 100755
+--- a/test/TEST-14-IMSM/create-root.sh
++++ b/test/TEST-14-IMSM/create-root.sh
+@@ -1,4 +1,7 @@
+ #!/bin/sh
++
++trap 'poweroff -f' EXIT
++
+ # don't let udev and this script step on eachother's toes
+ for x in 61-dmraid-imsm.rules 64-md-raid.rules 65-md-incremental-imsm.rules 65-md-incremental.rules 64-lvm.rules 70-mdadm.rules 99-mount-rules; do
+     rm -f -- "/etc/udev/rules.d/$x"
+@@ -55,20 +58,20 @@ mdadm --create /dev/md0 --run --auto=yes --level=5 --raid-devices=3 \
+ # wait for the array to finish initailizing, otherwise this sometimes fails
+ # randomly.
+ mdadm -W /dev/md0
++set -e
+ lvm pvcreate -ff  -y /dev/md0
+-lvm vgcreate dracut /dev/md0 && \
+-lvm lvcreate -l 100%FREE -n root dracut && \
+-lvm vgchange -ay && \
+-mke2fs -L root /dev/dracut/root && \
+-mkdir -p /sysroot && \
+-mount /dev/dracut/root /sysroot && \
+-cp -a -t /sysroot /source/* && \
+-umount /sysroot && \
+-lvm lvchange -a n /dev/dracut/root && \
++lvm vgcreate dracut /dev/md0
++lvm lvcreate -l 100%FREE -n root dracut
++lvm vgchange -ay
++mke2fs -L root /dev/dracut/root
++mkdir -p /sysroot
++mount /dev/dracut/root /sysroot
++cp -a -t /sysroot /source/*
++umount /sysroot
++lvm lvchange -a n /dev/dracut/root
+ udevadm settle
+ mdadm --detail --export /dev/md0 |grep -F MD_UUID > /tmp/mduuid
+ . /tmp/mduuid
+ echo "MD_UUID=$MD_UUID"
+ { echo "dracut-root-block-created"; echo MD_UUID=$MD_UUID;} > /dev/sda
+ mdadm --wait-clean /dev/md0
+-poweroff -f
+

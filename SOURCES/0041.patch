@@ -1,0 +1,30 @@
+From 68fefe6f9424d3f29e6da9133579c385e7b470b2 Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Mon, 27 May 2019 12:43:59 +0200
+Subject: [PATCH] network-manager: generate configuration with netroot=
+
+If the root is on network, let nm-initrd-generator create configuration
+even if none was explicitly specified on the command line.
+
+Also do the same if /tmp/net.ifaces exists, because the anaconda plugin
+creates an empty file in that location in hopes that will make us
+configure the network.
+
+(cherry picked from commit 381ab6b7cd2d35bf7f9da63b10c20f5ef6e61a8b)
+---
+ modules.d/35network-manager/nm-config.sh | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/modules.d/35network-manager/nm-config.sh b/modules.d/35network-manager/nm-config.sh
+index 1339ebe7..1efa737c 100755
+--- a/modules.d/35network-manager/nm-config.sh
++++ b/modules.d/35network-manager/nm-config.sh
+@@ -1,3 +1,7 @@
+ #!/bin/sh
+ 
++if [ -n "$netroot" ] || [ -e /tmp/net.ifaces ]; then
++    echo rd.neednet >> /etc/cmdline.d/35-neednet.conf
++fi
++
+ /usr/libexec/nm-initrd-generator -- $(getcmdline)
+

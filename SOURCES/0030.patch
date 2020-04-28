@@ -1,33 +1,24 @@
-From f3acdc517f1494301a9d8c4352a50a92bc3dbbf1 Mon Sep 17 00:00:00 2001
-From: Jonathan Lebon <jonathan@jlebon.com>
-Date: Tue, 29 Oct 2019 16:54:10 -0400
-Subject: [PATCH] 01fips: trim off GRUB boot device from BOOT_IMAGE
+From 50192de38d756203a414405e2d7552e89b1c0423 Mon Sep 17 00:00:00 2001
+From: Harald Hoyer <harald@redhat.com>
+Date: Tue, 4 Dec 2018 10:06:12 +0100
+Subject: [PATCH] test/test-functions: correctly move server.log
 
-E.g. in RHCOS, the `BOOT_IMAGE` from the cmdline is:
-
-(hd0,gpt1)/ostree/rhcos-e493371e5ee8407889029ec979955a2b86fd7e3cae5a0591b9db1cd248d966e8/vmlinuz-4.18.0-146.el8.x86_64
-
-Which of course is a GRUB thing, not an actual pathname we'll be able to
-resolve. In fact, we can simply scrap it off from the variable. Our code
-is already able to handle both cases: whether the device refers to a
-separate boot partition, or just the root filesystem with a regular
-`/boot` directory.
+(cherry picked from commit 712f471ebfae70fd71c0c740e9a3e120464ca7e7)
 ---
- modules.d/01fips/fips.sh | 4 ++++
- 1 file changed, 4 insertions(+)
+ test/test-functions | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules.d/01fips/fips.sh b/modules.d/01fips/fips.sh
-index de2755b0..559952ca 100755
---- a/modules.d/01fips/fips.sh
-+++ b/modules.d/01fips/fips.sh
-@@ -113,6 +113,10 @@ do_fips()
-         do_rhevh_check /run/initramfs/live/isolinux/vmlinuz0 || return 1
-     else
-         BOOT_IMAGE="$(getarg BOOT_IMAGE)"
-+
-+        # Trim off any leading GRUB boot device (e.g. ($root) )
-+        BOOT_IMAGE="$(echo "${BOOT_IMAGE}" | sed 's/^(.*)//')"
-+
-         BOOT_IMAGE_NAME="${BOOT_IMAGE##*/}"
-         BOOT_IMAGE_PATH="${BOOT_IMAGE%${BOOT_IMAGE_NAME}}"
- 
+diff --git a/test/test-functions b/test/test-functions
+index a6254ec7..51b3df80 100644
+--- a/test/test-functions
++++ b/test/test-functions
+@@ -80,7 +80,7 @@ while (($# > 0)); do
+                     ret=$?
+                     test_cleanup
+                     if ((ret!=0)) && [[ -f "$TESTDIR"/server.log ]]; then
+-                        mv [[ -f "$TESTDIR"/server.log ]] ./server${TEST_RUN_ID:+-$TEST_RUN_ID}.log
++                        mv "$TESTDIR"/server.log ./server${TEST_RUN_ID:+-$TEST_RUN_ID}.log
+                     fi
+                     rm -fr -- "$TESTDIR"
+                     rm -f -- .testdir${TEST_RUN_ID:+-$TEST_RUN_ID}
+

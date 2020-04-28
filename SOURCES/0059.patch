@@ -1,0 +1,58 @@
+From 2caaf8b9ba5b95983154bd641f0f493ff1562cc0 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Tue, 6 Aug 2019 15:39:31 +0800
+Subject: [PATCH] 99squash: Only start the cleaner on switch-root
+
+Currently it starts the cleaner early and do the clean up job if switch
+root is called. It's better to just start the service only on switch
+root to avoid any risk of service dependency failure and make is
+simpler.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 5d88809319049eb06e3472dcd11cca9c4557d8c2)
+
+Resolves: #1678248
+---
+ modules.d/99squash/module-setup.sh          |  3 ++-
+ modules.d/99squash/squash-mnt-clear.service | 11 ++++-------
+ 2 files changed, 6 insertions(+), 8 deletions(-)
+
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index 935fd721..e7e9ed8e 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -25,5 +25,6 @@ install() {
+     inst $moddir/init.sh /squash/init.sh
+ 
+     inst "$moddir/squash-mnt-clear.service" "$systemdsystemunitdir/squash-mnt-clear.service"
+-    ln_r "$systemdsystemunitdir/squash-mnt-clear.service" "$systemdsystemunitdir/initrd.target.wants/squash-mnt-clear.service"
++    mkdir -p "$initdir$systemdsystemunitdir/initrd-switch-root.target.wants"
++    ln_r "$systemdsystemunitdir/squash-mnt-clear.service" "$systemdsystemunitdir/initrd-switch-root.target.wants/squash-mnt-clear.service"
+ }
+diff --git a/modules.d/99squash/squash-mnt-clear.service b/modules.d/99squash/squash-mnt-clear.service
+index f8d5db46..84441f60 100644
+--- a/modules.d/99squash/squash-mnt-clear.service
++++ b/modules.d/99squash/squash-mnt-clear.service
+@@ -4,17 +4,14 @@
+ [Unit]
+ Description=Cleanup squashfs mounts when switch root
+ DefaultDependencies=no
+-After=initrd.target
+-After=dracut-initqueue.service dracut-pre-pivot.service
+-Before=initrd-cleanup.service
++Before=initrd-switch-root.service
++After=initrd-switch-root.target
+ ConditionPathExists=/squash/root
+-Conflicts=initrd-switch-root.target
+-IgnoreOnIsolate=true
+ 
+ [Service]
+ Type=oneshot
+-RemainAfterExit=yes
++RemainAfterExit=no
+ StandardInput=null
+ StandardOutput=syslog+console
+ StandardError=syslog+console
+-ExecStop=/squash/clear-squash.sh
++ExecStart=/squash/clear-squash.sh
+

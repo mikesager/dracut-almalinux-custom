@@ -1,0 +1,43 @@
+From bf69beb6f3824b1ebed221c8255d1f5c9efd136a Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Wed, 26 Jun 2019 16:42:04 +0200
+Subject: [PATCH] test/TEST-17-LVM-THIN: fail setup if we run out of space in
+ the thin pool
+
+This condition is rather difficult to detect -- the writes will just remain
+queued and get lost on shutdown, resulting in a corrupt filesystem.
+
+(cherry picked from commit 91c15babdf0215df59325f3086acfdf0ba247bfa)
+---
+ test/TEST-17-LVM-THIN/create-root.sh | 5 +++--
+ test/TEST-17-LVM-THIN/test.sh        | 2 +-
+ 2 files changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/test/TEST-17-LVM-THIN/create-root.sh b/test/TEST-17-LVM-THIN/create-root.sh
+index 117d1341..0e52f879 100755
+--- a/test/TEST-17-LVM-THIN/create-root.sh
++++ b/test/TEST-17-LVM-THIN/create-root.sh
+@@ -27,6 +27,7 @@ cp -a -t /sysroot /source/* && \
+ umount /sysroot && \
+ sleep 1 && \
+ lvm lvchange -a n /dev/dracut/root && \
+-sleep 1 && \
+-echo "dracut-root-block-created" >/dev/sda1
++sleep 1
++dmsetup status |grep out_of_data_space || \
++    echo "dracut-root-block-created" >/dev/sda1
+ poweroff -f
+diff --git a/test/TEST-17-LVM-THIN/test.sh b/test/TEST-17-LVM-THIN/test.sh
+index af349246..1b36a216 100755
+--- a/test/TEST-17-LVM-THIN/test.sh
++++ b/test/TEST-17-LVM-THIN/test.sh
+@@ -56,7 +56,7 @@ test_setup() {
+     (
+ 	export initdir=$TESTDIR/overlay
+ 	. $basedir/dracut-init.sh
+-	inst_multiple sfdisk mke2fs poweroff cp umount
++	inst_multiple sfdisk mke2fs poweroff cp umount grep dmsetup
+ 	inst_hook initqueue 01 ./create-root.sh
+         inst_hook initqueue/finished 01 ./finished-false.sh
+ 	inst_simple ./99-idesymlinks.rules /etc/udev/rules.d/99-idesymlinks.rules
+

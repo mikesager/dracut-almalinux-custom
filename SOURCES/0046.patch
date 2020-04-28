@@ -1,0 +1,37 @@
+From 96976e84e2c8544ab32026f05da8a35b9c48b2e5 Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Mon, 10 Jun 2019 16:05:49 +0200
+Subject: [PATCH] test/MULTINIC: correctly note activated devices when using
+ network-manager
+
+The .did-setup files are not there. What is there is the NetworkManager
+connection files.
+
+(cherry picked from commit 393fb1ac05ec3386a07d885e99985a647634803e)
+---
+ test/TEST-50-MULTINIC/client-init.sh | 10 ++++++++++
+ 1 file changed, 10 insertions(+)
+
+diff --git a/test/TEST-50-MULTINIC/client-init.sh b/test/TEST-50-MULTINIC/client-init.sh
+index 529379f0..7099dcf3 100755
+--- a/test/TEST-50-MULTINIC/client-init.sh
++++ b/test/TEST-50-MULTINIC/client-init.sh
+@@ -105,7 +105,17 @@ export TERM=linux
+ export PS1='initramfs-test:\w\$ '
+ stty sane
+ echo "made it to the rootfs! Powering down."
++for i in /sys/class/net/*/
++do
++    # booting with network-manager module
++    state=/run/NetworkManager/devices/$(cat $i/ifindex)
++    grep -q connection-uuid= $state 2>/dev/null || continue
++    i=${i##*/}
++    ip link show $i |grep -q master && continue
++    IFACES+="$i "
++done
+ for i in /run/initramfs/net.*.did-setup; do
++    # booting with network-legacy module
+     [ -f "$i" ] || continue
+     strglobin "$i" ":*:*:*:*:" && continue
+     i=${i%.did-setup}
+

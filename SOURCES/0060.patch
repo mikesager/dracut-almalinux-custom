@@ -1,0 +1,31 @@
+From ab679e91396a21489999c0acc9243415cb3235db Mon Sep 17 00:00:00 2001
+From: Colin Walters <walters@verbum.org>
+Date: Tue, 7 Jan 2020 20:53:53 +0000
+Subject: [PATCH] modules/network-manager: Install `ip`
+
+We don't need `ip` but having it is *really* useful for people debugging
+in an emergency shell.
+
+(cherry picked from commit 7fea85ce5f313445a260b5eb7bd7466217479d99)
+
+Resolves: #1784358
+---
+ modules.d/35network-manager/module-setup.sh | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/modules.d/35network-manager/module-setup.sh b/modules.d/35network-manager/module-setup.sh
+index 62aba3c6..d6d0f9ce 100755
+--- a/modules.d/35network-manager/module-setup.sh
++++ b/modules.d/35network-manager/module-setup.sh
+@@ -26,7 +26,9 @@ install() {
+ 
+     _nm_version=$(NetworkManager --version)
+ 
+-    inst_multiple sed grep
++    # We don't need `ip` but having it is *really* useful for people debugging
++    # in an emergency shell.
++    inst_multiple ip sed grep
+ 
+     inst NetworkManager
+     inst /usr/libexec/nm-initrd-generator
+

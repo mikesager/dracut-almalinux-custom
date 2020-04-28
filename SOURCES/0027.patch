@@ -1,32 +1,25 @@
-From ce722c7307e48a991d8450360a1a0183dfdb4915 Mon Sep 17 00:00:00 2001
-From: Jonathan Lebon <jonathan@jlebon.com>
-Date: Tue, 29 Oct 2019 09:35:41 -0400
-Subject: [PATCH] 01fips: fix HMAC file path resolution
+From d3f542cc9d0135a408be7ba995b8adad80bcd606 Mon Sep 17 00:00:00 2001
+From: Frantisek Sumsal <frantisek@sumsal.cz>
+Date: Wed, 21 Aug 2019 14:06:29 +0200
+Subject: [PATCH] travis: fetch only tags
 
-There is a small regression in #343: when handling the 'separate boot
-partition' case, we're checking for the kernel image in the wrong
-location: `BOOT_IMAGE` is the `/boot`-relative path to the kernel image,
-so `/boot/${BOOT_IMAGE_PATH}/${BOOT_IMAGE}` expands to e.g.
-`/boot/mysubdir1/mysubdir2/mysubdir1/mysubdir2/vmlinuz...`.
-
-We should be using `BOOT_IMAGE_NAME` here instead (and in fact, the next
-if-statement does this correctly, so it might've just been accidentally
-left out of #343).
+The original `git pull` would try to pull & merge changes from the
+master branch, which breaks CI runs on PRs based on non-master branches
 ---
- modules.d/01fips/fips.sh | 2 +-
+ .travis.yml | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules.d/01fips/fips.sh b/modules.d/01fips/fips.sh
-index beaa692b..c3dbcf74 100755
---- a/modules.d/01fips/fips.sh
-+++ b/modules.d/01fips/fips.sh
-@@ -118,7 +118,7 @@ do_fips()
- 
-         if [ -z "$BOOT_IMAGE_NAME" ]; then
-             BOOT_IMAGE_NAME="vmlinuz-${KERNEL}"
--        elif ! [ -e "/boot/${BOOT_IMAGE_PATH}/${BOOT_IMAGE}" ]; then
-+        elif ! [ -e "/boot/${BOOT_IMAGE_PATH}/${BOOT_IMAGE_NAME}" ]; then
-             #if /boot is not a separate partition BOOT_IMAGE might start with /boot
-             BOOT_IMAGE_PATH=${BOOT_IMAGE_PATH#"/boot"}
-             #on some achitectures BOOT_IMAGE does not contain path to kernel
+diff --git a/.travis.yml b/.travis.yml
+index f913db57..efb0df1b 100644
+--- a/.travis.yml
++++ b/.travis.yml
+@@ -29,7 +29,7 @@ before_script:
+     sudo modprobe kvm-intel nested=1 || :
+     sudo modprobe kvm-amd nested=1 || :
+     dmesg | tail || :
+-  - git pull --depth=100
++  - git fetch --tags --unshallow
+   - |
+     git describe --abbrev=0 --tags || :
+     git describe --tags || :
 

@@ -1,0 +1,23 @@
+From 4ef5cdc120bdbb348345c964a19affbb3ca1fa32 Mon Sep 17 00:00:00 2001
+From: Harald Hoyer <harald@redhat.com>
+Date: Fri, 11 Nov 2016 11:40:58 +0100
+Subject: [PATCH] test/test-rpms.txt: add gzip
+
+(cherry picked from commit 7b4173d698be5163da1e5b5b52bafd2facba4db5)
+---
+ test/test-rpms.txt | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/test/test-rpms.txt b/test/test-rpms.txt
+index 1723d8e9..10596da7 100644
+--- a/test/test-rpms.txt
++++ b/test/test-rpms.txt
+@@ -19,6 +19,7 @@ btrfs-progs
+ bridge-utils
+ kmod-devel
+ gcc
++gzip
+ bzip2
+ xz
+ tar
+
