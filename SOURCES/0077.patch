@@ -1,0 +1,35 @@
+From 8b3033c92a073f9e63074ffcdb1af6e69d99105c Mon Sep 17 00:00:00 2001
+From: Attila Bruncsak <bruncsak@users.noreply.github.com>
+Date: Fri, 14 Dec 2018 15:57:33 +0100
+Subject: [PATCH] the strip command should avoid changing the file modification
+ time
+
+(cherry picked from commit 7e944c77c0e05f2cc28e11227b465525c5131772)
+
+Resolves: #1776659
+---
+ dracut.sh | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index f270af76..223261d6 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1663,14 +1663,14 @@ if [[ $do_strip = yes ]] && ! [[ $DRACUT_FIPS_MODE ]]; then
+     dinfo "*** Stripping files ***"
+     find "$initdir" -type f \
+         -executable -not -path '*/lib/modules/*.ko' -print0 \
+-        | xargs -r -0 $strip_cmd -g 2>/dev/null
++        | xargs -r -0 $strip_cmd -g -p 2>/dev/null
+ 
+     # strip kernel modules, but do not touch signed modules
+     find "$initdir" -type f -path '*/lib/modules/*.ko' -print0 \
+         | while read -r -d $'\0' f || [ -n "$f" ]; do
+         SIG=$(tail -c 28 "$f" | tr -d '\000')
+         [[ $SIG == '~Module signature appended~' ]] || { printf "%s\000" "$f"; }
+-    done | xargs -r -0 $strip_cmd -g
++    done | xargs -r -0 $strip_cmd -g -p
+ 
+     dinfo "*** Stripping files done ***"
+ fi
+

@@ -1,0 +1,30 @@
+From b36c1ff083499c2cf1d1dbb7fe1663a2dd0683cc Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Wed, 25 Sep 2019 13:47:40 +0800
+Subject: [PATCH] Fine tune mksquashfs options for squash module
+
+Drop some unneeded metadata in the squash image, and print the error
+message if something went wrong.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 89bc1aa324bcdda3723247218a697171c5a3de6f)
+
+Resolves: #1776659
+---
+ dracut.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index 310646e3..487add57 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1857,7 +1857,7 @@ fi
+ 
+ if dracut_module_included "squash"; then
+     dinfo "*** Squashing the files inside the initramfs ***"
+-    mksquashfs $squash_dir $squash_img -comp xz -b 64K -Xdict-size 100% &> /dev/null
++    mksquashfs $squash_dir $squash_img -no-xattrs -no-exports -noappend -always-use-fragments -comp xz -Xdict-size 100% -no-progress 1> /dev/null
+ 
+     if [[ $? != 0 ]]; then
+         dfatal "dracut: Failed making squash image"
+

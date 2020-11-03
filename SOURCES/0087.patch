@@ -1,0 +1,82 @@
+From 3067edf07449e1dbc2dae0776da9426274b34cba Mon Sep 17 00:00:00 2001
+From: Beniamino Galvani <bgalvani@redhat.com>
+Date: Wed, 24 Jun 2020 13:06:05 +0200
+Subject: [PATCH] network-manager: move connection generation to a lib file
+
+Move the connection generation code to a library file so that it can
+be reused from other places.
+
+(cherry picked from commit 6e1e87cd2567801b10b2b4f716436c48688408bf)
+
+Resolves: #1847518
+---
+ modules.d/35network-manager/module-setup.sh |  1 +
+ modules.d/35network-manager/nm-config.sh    | 15 +++------------
+ modules.d/35network-manager/nm-lib.sh       | 20 ++++++++++++++++++++
+ 3 files changed, 24 insertions(+), 12 deletions(-)
+
+diff --git a/modules.d/35network-manager/module-setup.sh b/modules.d/35network-manager/module-setup.sh
+index ad2a1534..ed2f399e 100755
+--- a/modules.d/35network-manager/module-setup.sh
++++ b/modules.d/35network-manager/module-setup.sh
+@@ -37,6 +37,7 @@ install() {
+     inst_hook initqueue/settled 99 "$moddir/nm-run.sh"
+     inst_rules 85-nm-unmanaged.rules
+     inst_libdir_file "NetworkManager/$_nm_version/libnm-device-plugin-team.so"
++    inst_simple "$moddir/nm-lib.sh" "/lib/nm-lib.sh"
+ 
+     if [[ -x "$initdir/usr/sbin/dhclient" ]]; then
+         inst /usr/libexec/nm-dhcp-helper
+diff --git a/modules.d/35network-manager/nm-config.sh b/modules.d/35network-manager/nm-config.sh
+index 39a1c8bd..2b9df020 100755
+--- a/modules.d/35network-manager/nm-config.sh
++++ b/modules.d/35network-manager/nm-config.sh
+@@ -1,18 +1,9 @@
+ #!/bin/sh
+ 
++type nm_generate_connections >/dev/null 2>&1 || . /lib/nm-lib.sh
++
+ if [ -n "$netroot" ] || [ -e /tmp/net.ifaces ]; then
+     echo rd.neednet >> /etc/cmdline.d/35-neednet.conf
+ fi
+ 
+-/usr/libexec/nm-initrd-generator -- $(getcmdline)
+-
+-if getargbool 0 rd.neednet; then
+-  for i in /usr/lib/NetworkManager/system-connections/* \
+-           /run/NetworkManager/system-connections/* \
+-           /etc/NetworkManager/system-connections/* \
+-           /etc/sysconfig/network-scripts/ifcfg-*; do
+-    [ -f "$i" ] || continue
+-    echo '[ -f /tmp/nm.done ]' >$hookdir/initqueue/finished/nm.sh
+-    break
+-  done
+-fi
++nm_generate_connections
+diff --git a/modules.d/35network-manager/nm-lib.sh b/modules.d/35network-manager/nm-lib.sh
+new file mode 100644
+index 00000000..fe053cfa
+--- /dev/null
++++ b/modules.d/35network-manager/nm-lib.sh
+@@ -0,0 +1,20 @@
++#!/bin/bash
++
++type getcmdline >/dev/null 2>&1 || . /lib/dracut-lib.sh
++
++nm_generate_connections()
++{
++    rm -f /run/NetworkManager/system-connections/*
++    /usr/libexec/nm-initrd-generator -- $(getcmdline)
++
++    if getargbool 0 rd.neednet; then
++        for i in /usr/lib/NetworkManager/system-connections/* \
++                 /run/NetworkManager/system-connections/* \
++                 /etc/NetworkManager/system-connections/* \
++                 /etc/sysconfig/network-scripts/ifcfg-*; do
++            [ -f "$i" ] || continue
++            echo '[ -f /tmp/nm.done ]' >$hookdir/initqueue/finished/nm.sh
++            break
++        done
++    fi
++}
+

@@ -1,0 +1,50 @@
+From e4e1ab4e129fa17c5e90a2144e15096b0267c22a Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Thu, 2 Jul 2020 09:08:03 +0200
+Subject: [PATCH] install: also install post weak dependencies of kernel
+ modules
+
+(cherry picked from commit 6dafdda4a6bdb8721133e4267553c5d86564f9e8)
+
+Resolves: #1846343
+---
+ install/dracut-install.c | 18 +++++++++++++-----
+ 1 file changed, 13 insertions(+), 5 deletions(-)
+
+diff --git a/install/dracut-install.c b/install/dracut-install.c
+index 253ae194..51f79422 100644
+--- a/install/dracut-install.c
++++ b/install/dracut-install.c
+@@ -1272,9 +1272,13 @@ static int install_dependent_modules(struct kmod_list *modlist)
+ 			ret = install_dependent_modules(modlist);
+ 			if (ret == 0) {
+ 				ret = kmod_module_get_softdeps(mod, &modpre, &modpost);
+-				if (ret == 0)
+-					ret = install_dependent_modules(modpre);
+-			}
++                                if (ret == 0) {                        
++                                        int r;
++                                        ret = install_dependent_modules(modpre);    
++                                        r = install_dependent_modules(modpost);
++                                        ret = ret ? : r;
++                                }
++                        }
+                 } else {
+                         log_error("dracut_install '%s' '%s' ERROR", path, &path[kerneldirlen]);
+                 }
+@@ -1335,8 +1339,12 @@ static int install_module(struct kmod_module *mod)
+ 
+         if (ret == 0) {
+                 ret = kmod_module_get_softdeps(mod, &modpre, &modpost);
+-                if (ret == 0)
+-                        ret = install_dependent_modules(modpre);
++                if (ret == 0) {                        
++                        int r;
++                        ret = install_dependent_modules(modpre);    
++                        r = install_dependent_modules(modpost);
++                        ret = ret ? : r;
++                }
+         }
+ 
+         return ret;
+

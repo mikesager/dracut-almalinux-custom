@@ -1,0 +1,43 @@
+From d8c0b10b15940d88a28acbcf93354e4da0babb8d Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Wed, 10 Jun 2020 15:57:20 +0800
+Subject: [PATCH] dracut.sh: FIPS workaround for openssl-libs on Fedora/RHEL
+
+On Fedora/RHEL, libcryto will verify both itself and libssl on start, if
+libssl is missing, FIPS self test will fail. However libssl is not a
+dependency of libcryto so dracut will not install it, unless some other
+binary or library pulls it in. Systemd requires libssl, so in most cases
+it just worked, but could fail in some corner cases where systemd is not
+used.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 5a4c3469338410b6aea9452994b4b0af1ba59be7)
+
+Resolves: #1841077
+---
+ dracut.sh | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/dracut.sh b/dracut.sh
+index 4c5176a1..86e95449 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1840,6 +1840,17 @@ if [[ $kernel_only != yes ]]; then
+             break 2
+         done
+     done
++
++    # FIPS workaround for Fedora/RHEL: libcrypto needs libssl when FIPS is enabled
++    if [[ $DRACUT_FIPS_MODE ]]; then
++      for _dir in $libdirs; do
++          for _f in "$dracutsysrootdir$_dir/libcrypto.so"*; do
++              [[ -e "$_f" ]] || continue
++              inst_libdir_file -o "libssl.so*"
++              break 2
++          done
++      done
++    fi
+ fi
+ 
+ if [[ $do_strip = yes ]] && ! [[ $DRACUT_FIPS_MODE ]]; then
+

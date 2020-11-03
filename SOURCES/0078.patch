@@ -1,0 +1,108 @@
+From cbebaacfd05c55fddd11b3090983a2be1d2b48d3 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Wed, 17 Jul 2019 17:10:36 +0800
+Subject: [PATCH] dracut.sh: Adjust squash and strip order
+
+Previously with squash module, some binaries will be reinstalled, but
+stripping happens before that so new installed binaries is not stripped.
+So adjust the squash and strip order, ensure new installed binaries are
+stripped just the same way with the old binaries.
+
+Also split squash into two stage to make the split easier, move the
+squash temp dir into initdir so stripping will cover that too,
+and print more usefule message.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 6a74c03b4a8472fb090015b32e652edfeadb5a10)
+
+Resolves: #1776659
+---
+ dracut.sh | 43 +++++++++++++++++++++++++------------------
+ 1 file changed, 25 insertions(+), 18 deletions(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index 223261d6..310646e3 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1659,21 +1659,6 @@ for d in $(ldconfig_paths); do
+     rmdir -p --ignore-fail-on-non-empty "$initdir/$d" >/dev/null 2>&1
+ done
+ 
+-if [[ $do_strip = yes ]] && ! [[ $DRACUT_FIPS_MODE ]]; then
+-    dinfo "*** Stripping files ***"
+-    find "$initdir" -type f \
+-        -executable -not -path '*/lib/modules/*.ko' -print0 \
+-        | xargs -r -0 $strip_cmd -g -p 2>/dev/null
+-
+-    # strip kernel modules, but do not touch signed modules
+-    find "$initdir" -type f -path '*/lib/modules/*.ko' -print0 \
+-        | while read -r -d $'\0' f || [ -n "$f" ]; do
+-        SIG=$(tail -c 28 "$f" | tr -d '\000')
+-        [[ $SIG == '~Module signature appended~' ]] || { printf "%s\000" "$f"; }
+-    done | xargs -r -0 $strip_cmd -g -p
+-
+-    dinfo "*** Stripping files done ***"
+-fi
+ if [[ $early_microcode = yes ]]; then
+     dinfo "*** Generating early-microcode cpio image ***"
+     ucode_dir=(amd-ucode intel-ucode)
+@@ -1745,9 +1730,8 @@ if [[ $hostonly_cmdline == "yes" ]] ; then
+     fi
+ fi
+ 
+-dinfo "*** Creating image file '$outfile' ***"
+-
+ if dracut_module_included "squash"; then
++    dinfo "*** Install squash loader ***"
+     if ! check_kernel_config CONFIG_SQUASHFS; then
+         dfatal "CONFIG_SQUASHFS have to be enabled for dracut squash module to work"
+         exit 1
+@@ -1761,7 +1745,7 @@ if dracut_module_included "squash"; then
+         exit 1
+     fi
+ 
+-    readonly squash_dir="${DRACUT_TMPDIR}/squashfs"
++    readonly squash_dir="$initdir/squash/root"
+     readonly squash_img=$initdir/squash/root.img
+ 
+     # Currently only move "usr" "etc" to squashdir
+@@ -1854,15 +1838,38 @@ if dracut_module_included "squash"; then
+             fi
+         done
+     done
++fi
+ 
++if [[ $do_strip = yes ]] && ! [[ $DRACUT_FIPS_MODE ]]; then
++    dinfo "*** Stripping files ***"
++    find "$initdir" -type f \
++        -executable -not -path '*/lib/modules/*.ko' -print0 \
++        | xargs -r -0 $strip_cmd -g -p 2>/dev/null
++
++    # strip kernel modules, but do not touch signed modules
++    find "$initdir" -type f -path '*/lib/modules/*.ko' -print0 \
++        | while read -r -d $'\0' f || [ -n "$f" ]; do
++        SIG=$(tail -c 28 "$f" | tr -d '\000')
++        [[ $SIG == '~Module signature appended~' ]] || { printf "%s\000" "$f"; }
++    done | xargs -r -0 $strip_cmd -g -p
++    dinfo "*** Stripping files done ***"
++fi
++
++if dracut_module_included "squash"; then
++    dinfo "*** Squashing the files inside the initramfs ***"
+     mksquashfs $squash_dir $squash_img -comp xz -b 64K -Xdict-size 100% &> /dev/null
+ 
+     if [[ $? != 0 ]]; then
+         dfatal "dracut: Failed making squash image"
+         exit 1
+     fi
++
++    rm -rf $squash_dir
++    dinfo "*** Squashing the files inside the initramfs done ***"
+ fi
+ 
++dinfo "*** Creating image file '$outfile' ***"
++
+ if [[ $uefi = yes ]]; then
+     readonly uefi_outdir="$DRACUT_TMPDIR/uefi"
+     mkdir "$uefi_outdir"
+

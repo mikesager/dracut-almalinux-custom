@@ -1,0 +1,27 @@
+From 41739f232f3f353d45206ceee89ef0bc1c544f31 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Mon, 3 Aug 2020 16:51:54 +0800
+Subject: [PATCH] 90kernel-modules: add pci_hyperv
+
+Install pci_hyperv for SR-IOV devices on hyperv machines.
+
+(cherry picked from commit f7ad1479f277ddffcc501bd08919a4a4a6facc26)
+
+Resolves: #1854001
+---
+ modules.d/90kernel-modules/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/90kernel-modules/module-setup.sh b/modules.d/90kernel-modules/module-setup.sh
+index c91ba10c..86852038 100755
+--- a/modules.d/90kernel-modules/module-setup.sh
++++ b/modules.d/90kernel-modules/module-setup.sh
+@@ -56,7 +56,7 @@ installkernel() {
+         instmods \
+             yenta_socket \
+             atkbd i8042 usbhid firewire-ohci pcmcia hv-vmbus \
+-            virtio virtio_ring virtio_pci virtio_scsi \
++            virtio virtio_ring virtio_pci virtio_scsi pci_hyperv \
+             "=drivers/pcmcia"
+ 
+         if [[ "$(uname -m)" == arm* || "$(uname -m)" == aarch64 ]]; then

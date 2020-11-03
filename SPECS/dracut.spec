@@ -5,7 +5,7 @@
 # strip the automatically generated dep here and instead co-own the
 # directory.
 %global __requires_exclude pkg-config
-%define dist_free_release 70.git20200228
+%define dist_free_release 95.git20200804
 
 Name: dracut
 Version: 049
@@ -97,6 +97,31 @@ Patch66: 0066.patch
 Patch67: 0067.patch
 Patch68: 0068.patch
 Patch69: 0069.patch
+Patch70: 0070.patch
+Patch71: 0071.patch
+Patch72: 0072.patch
+Patch73: 0073.patch
+Patch74: 0074.patch
+Patch75: 0075.patch
+Patch76: 0076.patch
+Patch77: 0077.patch
+Patch78: 0078.patch
+Patch79: 0079.patch
+Patch80: 0080.patch
+Patch81: 0081.patch
+Patch82: 0082.patch
+Patch83: 0083.patch
+Patch84: 0084.patch
+Patch85: 0085.patch
+Patch86: 0086.patch
+Patch87: 0087.patch
+Patch88: 0088.patch
+Patch89: 0089.patch
+Patch90: 0090.patch
+Patch91: 0091.patch
+Patch92: 0092.patch
+Patch93: 0093.patch
+Patch94: 0094.patch
 
 Source1: https://www.gnu.org/licenses/lgpl-2.1.txt
 
@@ -154,6 +179,7 @@ Requires: xz
 Requires: gzip
 
 %if 0%{?fedora} || 0%{?rhel}
+Recommends: memstrack
 Recommends: hardlink
 Recommends: pigz
 Recommends: kpartx
@@ -469,6 +495,7 @@ install -m 0755 51-dracut-rescue-postinst.sh $RPM_BUILD_ROOT%{_sysconfdir}/kerne
 %{dracutlibdir}/modules.d/98syslog
 %{dracutlibdir}/modules.d/98usrmount
 %{dracutlibdir}/modules.d/99base
+%{dracutlibdir}/modules.d/99memstrack
 %{dracutlibdir}/modules.d/99fs-lib
 %{dracutlibdir}/modules.d/99shutdown
 %attr(0644,root,root) %ghost %config(missingok,noreplace) %{_localstatedir}/log/dracut.log
@@ -549,7 +576,55 @@ install -m 0755 51-dracut-rescue-postinst.sh $RPM_BUILD_ROOT%{_sysconfdir}/kerne
 %{_sysconfdir}/kernel/postinst.d/51-dracut-rescue-postinst.sh
 %endif
 
+%triggerin network -- dracut-network < 049-83.git20200525
+echo '# Since rhel-8.3 dracut moved to use NetworkManager
+# On existing installations we want to preserve the old scripts
+add_dracutmodules+=" network-legacy "' > /etc/dracut.conf.d/50-network-legacy.conf
+
 %changelog
+* Tue Aug 04 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-95.git20200804
+- 90kernel-modules: add pci_hyperv
+
+* Thu Jul 09 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-94.git20200709
+- dracut.sh: Move the library workaround after squash
+- dracut.sh: FIPS workaround for openssl-libs on Fedora/RHEL
+
+* Thu Jul 02 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-92.git20200702
+- install/dracut-install.c: install module dependencies of
+- install: also install post weak dependencies of kernel
+
+* Thu Jul 02 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-90.git20200702
+- spec: don't use NM on existing installations
+
+* Thu Jun 25 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-89.git20200625
+- Adapt to the new udevadm version output
+- network-manager: move connection generation to a lib file
+- cms: regenerate NetworkManager connections
+
+* Tue Jun 02 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-86.git20200602
+- Do not require non-empty kernel cmdline
+
+* Wed May 27 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-85.git20200527
+- 99memstrack: hook script should not call exit
+- Remove cleanup_trace_mem calls
+
+* Mon May 25 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-83.git20200525
+- Remove memtrace-ko and rd.memdebug=4 support in dracut
+- Add 99memstrack module
+- the strip command should avoid changing the file modification
+- dracut.sh: Adjust squash and strip order
+- Fine tune mksquashfs options for squash module
+- 90kernel-modules: don't install any block driver if not
+- 95znet: Add a rd.znet_ifname= option
+- Revert "[RHEL] network: default to network-legacy even in
+
+* Wed Apr 22 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-75.git20200422
+- network-manager: fix getting of ifname from the sysfs path
+- network-manager: don't run NetworkManager when there are no
+- network-manager: ensure that nm-run.sh is executed when
+- network-manager: install libnss DNS and mDNS plugins
+- Always pull in machinery to read ifcfg files
+
 * Fri Feb 28 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-70.git20200228
 - network-legacy/ifup: fix ip=dhcp,dhcp6 setup_net logic
 

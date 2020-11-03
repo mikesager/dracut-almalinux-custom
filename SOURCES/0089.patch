@@ -1,0 +1,25 @@
+From 6c0071bc72dbbdd2a958277618a9b2c64c6ee460 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Thu, 2 Jul 2020 14:33:20 +0200
+Subject: [PATCH] spec: don't use NM on existing installations
+
+Resolves: #1839706
+---
+ dracut.spec | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/dracut.spec b/dracut.spec
+index c82c24f6..a8076c18 100644
+--- a/dracut.spec
++++ b/dracut.spec
+@@ -481,4 +481,9 @@ install -m 0755 51-dracut-rescue-postinst.sh $RPM_BUILD_ROOT%{_sysconfdir}/kerne
+ %{_sysconfdir}/kernel/postinst.d/51-dracut-rescue-postinst.sh
+ %endif
+ 
++%triggerin network -- dracut-network < 049-83.git20200525
++echo '# Since rhel-8.3 dracut moved to use NetworkManager
++# On existing installations we want to preserve the old scripts
++add_dracutmodules+=" network-legacy "' > /etc/dracut.conf.d/50-network-legacy.conf
++
+ %changelog
+
