@@ -1,0 +1,29 @@
+From 08ef5f0da71b84f606c2a75bd0574b206b997fc3 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Fri, 27 Nov 2020 09:32:20 +0100
+Subject: [PATCH] multipathd: fix the comparison
+
+From shellcheck:
+/usr/lib/dracut/modules.d/90multipath/multipathd.sh:3:32: warning[SC2039]: In POSIX sh, == in place of = is undefined.
+/usr/lib/dracut/modules.d/90multipath/multipathd.sh:3:32: warning[SC2193]: The arguments to this comparison can never be equal.
+
+(cherry picked from commit 7c2521091f30d7c14caaf96850208afa2fe1d811)
+
+Resolves: #1888779
+---
+ modules.d/90multipath/multipathd.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/90multipath/multipathd.sh b/modules.d/90multipath/multipathd.sh
+index 936c5dc7..b0183ffe 100755
+--- a/modules.d/90multipath/multipathd.sh
++++ b/modules.d/90multipath/multipathd.sh
+@@ -1,6 +1,6 @@
+ #!/bin/sh
+ 
+-if [ "$(getarg rd.multipath)x" == "default" ] && [ ! -e /etc/multipath.conf ]; then
++if [ "$(getarg rd.multipath)" = "default" ] && [ ! -e /etc/multipath.conf ]; then
+     mkdir -p /etc/multipath/multipath.conf.d
+     mpathconf --enable
+ fi
+

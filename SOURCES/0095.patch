@@ -1,0 +1,31 @@
+From 6616132de5ec2991e0b55eca6e9d12e50f7be293 Mon Sep 17 00:00:00 2001
+From: Doan Tran Cong Danh <congdanhqx@gmail.com>
+Date: Fri, 8 Nov 2019 10:53:41 +0700
+Subject: [PATCH] multipath: require kpartx binary
+
+multipath requires kpartx to activate device mapper.
+But kpartx is only a recommend dependency.
+
+Check for kpartx's existent first.
+
+Signed-off-by: Doan Tran Cong Danh <congdanhqx@gmail.com>
+(cherry picked from commit cf31ed2ae687d9898cafc11ec6e4f478e806ad38)
+
+Resolves: #1888779
+---
+ modules.d/90multipath/module-setup.sh | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/modules.d/90multipath/module-setup.sh b/modules.d/90multipath/module-setup.sh
+index f825c00c..2b9a3166 100755
+--- a/modules.d/90multipath/module-setup.sh
++++ b/modules.d/90multipath/module-setup.sh
+@@ -29,6 +29,7 @@ check() {
+ 
+     # if there's no multipath binary, no go.
+     require_binaries multipath || return 1
++    require_binaries kpartx || return 1
+ 
+     return 0
+ }
+

@@ -25,3 +25,4 @@ index c91ba10c..86852038 100755
              "=drivers/pcmcia"
  
          if [[ "$(uname -m)" == arm* || "$(uname -m)" == aarch64 ]]; then
+

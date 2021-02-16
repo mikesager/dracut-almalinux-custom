@@ -1,0 +1,66 @@
+From 1e7a27bd5f463409392d34816a10bf108ee896c6 Mon Sep 17 00:00:00 2001
+From: Jonathan Lebon <jonathan@jlebon.com>
+Date: Fri, 9 Oct 2020 19:44:35 -0400
+Subject: [PATCH] 98dracut-systemd: don't wait for root device if remote
+ cryptsetup active
+
+This is a plain and simple hack around dependency issues between dracut
+and systemd.
+
+When using Tang-pinned LUKS root devices, we want to rely on
+`systemd-cryptsetup@.service` to unlock it. However, that service only
+runs `After=remote-fs-pre.target`, while `dracut-initqueue.service` has
+`Before=remote-fs-pre.target` (which makes sense because we don't want
+to attempt networked root devices before networking is up).
+
+However, the rootfs-generator here wants to make sure that the root
+device exists *before* exiting the initqueue via an initqueue/finished
+"devexists" hook. This will never work though because by design
+`systemd-cryptsetup@.service`, which unlocks the root device, won't run
+until after we exit.
+
+So we have a dependency cycle:
+
+    initqueue -> devexists hook -> root device ->
+        systemd-cryptsetup@.service -> remote-fs-pre.target -> initqueue
+
+There's no clean way to break this. The root issue is that there's no
+way right now to split sequencing of systemd services across the
+initqueue/online and initqueue/finished events because it's all bundled
+in a single service. (The deeper root issue of course is that we have
+two init systems. :) ).
+
+Here we do a tactical fix: if there's a `systemd-cryptsetup@.service`
+instance, let's assume it's for the root device and skip waiting for it
+to show up if it depends on `remote-fs-pre.target`.
+
+(cherry picked from commit 512c51d2677dd1637cc203e3676fefb50a3d73d0)
+
+Resolves: #1897384
+---
+ modules.d/98dracut-systemd/rootfs-generator.sh | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/modules.d/98dracut-systemd/rootfs-generator.sh b/modules.d/98dracut-systemd/rootfs-generator.sh
+index 4ae693bb..bb376c0f 100755
+--- a/modules.d/98dracut-systemd/rootfs-generator.sh
++++ b/modules.d/98dracut-systemd/rootfs-generator.sh
+@@ -13,8 +13,15 @@ generator_wait_for_dev()
+ 
+     if ! [ -e "$hookdir/initqueue/finished/devexists-${_name}.sh" ]; then
+ 
+-        printf '[ -e "%s" ]\n' $1 \
+-            >> "$hookdir/initqueue/finished/devexists-${_name}.sh"
++        # If a LUKS device needs unlocking via systemd in the initrd, assume
++        # it's for the root device. In that case, don't block on it if it's
++        # after remote-fs-pre.target since the initqueue is ordered before it so
++        # it will never actually show up (think Tang-pinned rootfs).
++        cat > "$hookdir/initqueue/finished/devexists-${_name}.sh" << EOF
++if ! grep -q After=remote-fs-pre.target /run/systemd/generator/systemd-cryptsetup@*.service 2>/dev/null; then
++    [ -e "$1" ]
++fi
++EOF
+         {
+             printf '[ -e "%s" ] || ' $1
+             printf 'warn "\"%s\" does not exist"\n' $1
+

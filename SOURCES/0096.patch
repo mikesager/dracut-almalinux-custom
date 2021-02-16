@@ -1,0 +1,167 @@
+From 59d51f92475f1b4dc81b1e6f5537f63876952c39 Mon Sep 17 00:00:00 2001
+From: Jan Macku <jamacku@redhat.com>
+Date: Fri, 8 Nov 2019 16:24:13 +0100
+Subject: [PATCH] Replace ln with systemctl
+
+(cherry picked from commit 70b19acf941c0bf41b2c69c761124425910c0653)
+
+Cherry-picked from: 70b19acf941c0bf41b2c69c761124425910c0653
+Resolves: #1888779
+---
+ modules.d/00systemd/module-setup.sh          | 6 ++----
+ modules.d/02systemd-networkd/module-setup.sh | 8 ++++----
+ modules.d/06rngd/module-setup.sh             | 5 ++---
+ modules.d/90multipath/module-setup.sh        | 3 +--
+ modules.d/90stratis/module-setup.sh          | 3 +--
+ modules.d/95iscsi/module-setup.sh            | 8 +++-----
+ modules.d/98dracut-systemd/module-setup.sh   | 3 +--
+ modules.d/99squash/module-setup.sh           | 3 +--
+ 8 files changed, 15 insertions(+), 24 deletions(-)
+
+diff --git a/modules.d/00systemd/module-setup.sh b/modules.d/00systemd/module-setup.sh
+index e4a3f323..4ab2a896 100755
+--- a/modules.d/00systemd/module-setup.sh
++++ b/modules.d/00systemd/module-setup.sh
+@@ -225,9 +225,7 @@ install() {
+         systemd-ask-password-console.service \
+         systemd-ask-password-plymouth.service \
+         ; do
+-        mkdir -p "${initdir}${systemdsystemunitdir}/${i}.wants"
+-        ln_r "${systemdsystemunitdir}/systemd-vconsole-setup.service" \
+-            "${systemdsystemunitdir}/${i}.wants/systemd-vconsole-setup.service"
++        systemctl -q --root "$initdir" add-wants "$i" systemd-vconsole-setup.service
+     done
+ 
+     mkdir -p "$initdir/etc/systemd"
+@@ -239,6 +237,6 @@ install() {
+         echo "RateLimitBurst=0"
+     } >> "$initdir/etc/systemd/journald.conf"
+ 
+-    ln_r "${systemdsystemunitdir}/multi-user.target" "${systemdsystemunitdir}/default.target"
++    systemctl -q --root "$initdir" set-default multi-user.target
+ }
+ 
+diff --git a/modules.d/02systemd-networkd/module-setup.sh b/modules.d/02systemd-networkd/module-setup.sh
+index b86751ea..8b87923f 100755
+--- a/modules.d/02systemd-networkd/module-setup.sh
++++ b/modules.d/02systemd-networkd/module-setup.sh
+@@ -61,11 +61,11 @@ install() {
+ 
+     for i in \
+         systemd-networkd-wait-online.service \
+-            systemd-networkd.service \
+-            systemd-networkd.socket
+-#            systemd-timesyncd.service
++        systemd-networkd.service \
++        systemd-networkd.socket
++#       systemd-timesyncd.service
+     do
+-        systemctl --root "$initdir" enable "$i"
++        systemctl -q --root "$initdir" enable "$i"
+     done
+ }
+ 
+diff --git a/modules.d/06rngd/module-setup.sh b/modules.d/06rngd/module-setup.sh
+index 43d5c2d3..354bd0bb 100644
+--- a/modules.d/06rngd/module-setup.sh
++++ b/modules.d/06rngd/module-setup.sh
+@@ -33,7 +33,6 @@ check() {
+ install() {
+     inst rngd
+     inst_simple "${moddir}/rngd.service" "${systemdsystemunitdir}/rngd.service"
+-    mkdir -p "${initdir}${systemdsystemunitdir}/sysinit.target.wants"
+-    ln -rfs "${initdir}${systemdsystemunitdir}/rngd.service" \
+-        "${initdir}${systemdsystemunitdir}/sysinit.target.wants/rngd.service"
++
++    systemctl -q --root "$initdir" add-wants sysinit.target rngd.service
+ }
+diff --git a/modules.d/90multipath/module-setup.sh b/modules.d/90multipath/module-setup.sh
+index 2b9a3166..8a032c86 100755
+--- a/modules.d/90multipath/module-setup.sh
++++ b/modules.d/90multipath/module-setup.sh
+@@ -110,8 +110,7 @@ install() {
+ 
+     if dracut_module_included "systemd"; then
+         inst_simple "${moddir}/multipathd.service" "${systemdsystemunitdir}/multipathd.service"
+-        mkdir -p "${initdir}${systemdsystemunitdir}/sysinit.target.wants"
+-        ln -rfs "${initdir}${systemdsystemunitdir}/multipathd.service" "${initdir}${systemdsystemunitdir}/sysinit.target.wants/multipathd.service"
++        systemctl -q --root "$initdir" enable multipathd.service
+     else
+         inst_hook pre-trigger 02 "$moddir/multipathd.sh"
+         inst_hook cleanup   02 "$moddir/multipathd-stop.sh"
+diff --git a/modules.d/90stratis/module-setup.sh b/modules.d/90stratis/module-setup.sh
+index 29f0765b..943f572e 100755
+--- a/modules.d/90stratis/module-setup.sh
++++ b/modules.d/90stratis/module-setup.sh
+@@ -24,8 +24,7 @@ install() {
+ 
+     if dracut_module_included "systemd"; then
+         inst_simple "${moddir}/stratisd-init.service" "${systemdsystemunitdir}/stratisd-init.service"
+-        mkdir -p "${initdir}${systemdsystemunitdir}/sysinit.target.wants"
+-        ln -rfs "${initdir}${systemdsystemunitdir}/stratisd-init.service" "${initdir}${systemdsystemunitdir}/sysinit.target.wants/stratisd-init.service"
++        systemctl -q --root "$initdir" enable stratisd-init.service
+     else
+         inst_hook cmdline 25 "$moddir/stratisd-start.sh"
+         inst_hook cleanup 25 "$moddir/stratisd-stop.sh"
+diff --git a/modules.d/95iscsi/module-setup.sh b/modules.d/95iscsi/module-setup.sh
+index f6f3520d..47a92e94 100755
+--- a/modules.d/95iscsi/module-setup.sh
++++ b/modules.d/95iscsi/module-setup.sh
+@@ -242,20 +242,18 @@ install() {
+                       $systemdsystemunitdir/iscsiuio.socket \
+                       iscsiadm iscsid
+ 
+-        mkdir -p "${initdir}/$systemdsystemunitdir/sockets.target.wants"
+         for i in \
+                 iscsid.socket \
+                 iscsiuio.socket \
+             ; do
+-            ln_r "$systemdsystemunitdir/${i}" "$systemdsystemunitdir/sockets.target.wants/${i}"
++            systemctl -q --root "$initdir" enable "$i"
+         done
+-
+-        mkdir -p "${initdir}/$systemdsystemunitdir/basic.target.wants"
++        
+         for i in \
+                 iscsid.service \
+                 iscsiuio.service \
+             ; do
+-            ln_r "$systemdsystemunitdir/${i}" "$systemdsystemunitdir/basic.target.wants/${i}"
++            systemctl -q --root "$initdir" add-wants basic.target "$i"
+         done
+ 
+         # Make sure iscsid is started after dracut-cmdline and ready for the initqueue
+diff --git a/modules.d/98dracut-systemd/module-setup.sh b/modules.d/98dracut-systemd/module-setup.sh
+index 900162c3..1387433a 100755
+--- a/modules.d/98dracut-systemd/module-setup.sh
++++ b/modules.d/98dracut-systemd/module-setup.sh
+@@ -43,7 +43,6 @@ install() {
+ 
+     inst_script "$moddir/rootfs-generator.sh" $systemdutildir/system-generators/dracut-rootfs-generator
+ 
+-    mkdir -p "${initdir}/$systemdsystemunitdir/initrd.target.wants"
+     for i in \
+         dracut-cmdline.service \
+         dracut-cmdline-ask.service \
+@@ -55,7 +54,7 @@ install() {
+         dracut-pre-udev.service \
+         ; do
+         inst_simple "$moddir/${i}" "$systemdsystemunitdir/${i}"
+-        ln_r "$systemdsystemunitdir/${i}" "$systemdsystemunitdir/initrd.target.wants/${i}"
++        systemctl -q --root "$initdir" add-wants initrd.target "$i"
+     done
+ 
+     inst_simple "$moddir/dracut-tmpfiles.conf" "$tmpfilesdir/dracut-tmpfiles.conf"
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index e7e9ed8e..7aa0b447 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -25,6 +25,5 @@ install() {
+     inst $moddir/init.sh /squash/init.sh
+ 
+     inst "$moddir/squash-mnt-clear.service" "$systemdsystemunitdir/squash-mnt-clear.service"
+-    mkdir -p "$initdir$systemdsystemunitdir/initrd-switch-root.target.wants"
+-    ln_r "$systemdsystemunitdir/squash-mnt-clear.service" "$systemdsystemunitdir/initrd-switch-root.target.wants/squash-mnt-clear.service"
++    systemctl -q --root "$initdir" add-wants initrd-switch-root.target squash-mnt-clear.service
+ }
+

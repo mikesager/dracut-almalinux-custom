@@ -1,0 +1,43 @@
+From aa4cf6df94dd3a858144040138d970a57c701a8d Mon Sep 17 00:00:00 2001
+From: Jonathan Lebon <jonathan@jlebon.com>
+Date: Thu, 12 Nov 2020 11:27:39 -0500
+Subject: [PATCH] 90crypt: pull in remote-cryptsetup.target enablement
+
+This should've been part of #964. As mentioned there, the
+`initrd-cryptsetup.target` approach was reverted in the end, and we went
+back to relying in `remote-cryptsetup.target`:
+
+https://github.com/systemd/systemd/pull/17467
+
+So we do need to ship the enablement symlink for it.
+
+(cherry picked from commit a23a4680e7d04d1016e9d5e4b53b1e65f1ca98aa)
+
+Resolves: #1897384
+---
+ modules.d/90crypt/module-setup.sh | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/modules.d/90crypt/module-setup.sh b/modules.d/90crypt/module-setup.sh
+index 1ec59096..a26b6dff 100755
+--- a/modules.d/90crypt/module-setup.sh
++++ b/modules.d/90crypt/module-setup.sh
+@@ -120,6 +120,8 @@ install() {
+     inst_simple "$moddir/crypt-lib.sh" "/lib/dracut-crypt-lib.sh"
+ 
+     if dracut_module_included "systemd"; then
++        # the cryptsetup targets are already pulled in by 00systemd, but not
++        # the enablement symlinks
+         inst_multiple -o \
+                       $systemdutildir/system-generators/systemd-cryptsetup-generator \
+                       $systemdutildir/systemd-cryptsetup \
+@@ -127,6 +129,8 @@ install() {
+                       $systemdsystemunitdir/systemd-ask-password-console.service \
+                       $systemdsystemunitdir/cryptsetup.target \
+                       $systemdsystemunitdir/sysinit.target.wants/cryptsetup.target \
++                      $systemdsystemunitdir/remote-cryptsetup.target \
++                      $systemdsystemunitdir/initrd-root-device.target.wants/remote-cryptsetup.target \
+                       systemd-ask-password systemd-tty-ask-password-agent
+         inst_script "$moddir"/crypt-run-generator.sh /sbin/crypt-run-generator
+     fi
+

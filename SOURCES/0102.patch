@@ -1,0 +1,24 @@
+From ab6377eebef8e811dd3fd6d43e2af14dbada75d9 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Tue, 15 Dec 2020 14:04:24 +0100
+Subject: [PATCH] dracut-systemd: create the initrd.target.wants directory
+
+kexec-tools depends on the existence of this directory in RHEL8
+
+Resolves: #1888779
+---
+ modules.d/98dracut-systemd/module-setup.sh | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/modules.d/98dracut-systemd/module-setup.sh b/modules.d/98dracut-systemd/module-setup.sh
+index 1387433a..9a0f476c 100755
+--- a/modules.d/98dracut-systemd/module-setup.sh
++++ b/modules.d/98dracut-systemd/module-setup.sh
+@@ -43,6 +43,7 @@ install() {
+ 
+     inst_script "$moddir/rootfs-generator.sh" $systemdutildir/system-generators/dracut-rootfs-generator
+ 
++    mkdir -p "${initdir}/$systemdsystemunitdir/initrd.target.wants"
+     for i in \
+         dracut-cmdline.service \
+         dracut-cmdline-ask.service \

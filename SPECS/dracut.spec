@@ -9,7 +9,7 @@
 
 Name: dracut
 Version: 049
-Release: %{dist_free_release}%{?dist}
+Release: %{dist_free_release}%{?dist}.4
 
 Summary: Initramfs generator using udev
 %if 0%{?fedora} || 0%{?rhel}
@@ -122,6 +122,14 @@ Patch91: 0091.patch
 Patch92: 0092.patch
 Patch93: 0093.patch
 Patch94: 0094.patch
+Patch95: 0095.patch
+Patch96: 0096.patch
+Patch97: 0097.patch
+Patch98: 0098.patch
+Patch99: 0099.patch
+Patch100: 0100.patch
+Patch101: 0101.patch
+Patch102: 0102.patch
 
 Source1: https://www.gnu.org/licenses/lgpl-2.1.txt
 
@@ -582,6 +590,22 @@ echo '# Since rhel-8.3 dracut moved to use NetworkManager
 add_dracutmodules+=" network-legacy "' > /etc/dracut.conf.d/50-network-legacy.conf
 
 %changelog
+* Tue Dec 15 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-95.git20200804.4
+- dracut-systemd: create the initrd.target.wants directory
+
+* Mon Nov 30 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-95.git20200804.3
+- multipathd: fix the comparison
+
+* Mon Nov 30 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-95.git20200804.2
+- fix backport of 70b19acf
+
+* Fri Nov 20 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-95.git20200804.1
+- multipath: require kpartx binary
+- Replace ln with systemctl
+- multipath: add automatic configuration for multipath
+- 98dracut-systemd: don't wait for root device if remote
+- 90crypt: pull in remote-cryptsetup.target enablement
+
 * Tue Aug 04 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-95.git20200804
 - 90kernel-modules: add pci_hyperv
 
