@@ -5,11 +5,11 @@
 # strip the automatically generated dep here and instead co-own the
 # directory.
 %global __requires_exclude pkg-config
-%define dist_free_release 95.git20200804
+%define dist_free_release 135.git20210121
 
 Name: dracut
 Version: 049
-Release: %{dist_free_release}%{?dist}.4
+Release: %{dist_free_release}%{?dist}
 
 Summary: Initramfs generator using udev
 %if 0%{?fedora} || 0%{?rhel}
@@ -130,6 +130,38 @@ Patch99: 0099.patch
 Patch100: 0100.patch
 Patch101: 0101.patch
 Patch102: 0102.patch
+Patch103: 0103.patch
+Patch104: 0104.patch
+Patch105: 0105.patch
+Patch106: 0106.patch
+Patch107: 0107.patch
+Patch108: 0108.patch
+Patch109: 0109.patch
+Patch110: 0110.patch
+Patch111: 0111.patch
+Patch112: 0112.patch
+Patch113: 0113.patch
+Patch114: 0114.patch
+Patch115: 0115.patch
+Patch116: 0116.patch
+Patch117: 0117.patch
+Patch118: 0118.patch
+Patch119: 0119.patch
+Patch120: 0120.patch
+Patch121: 0121.patch
+Patch122: 0122.patch
+Patch123: 0123.patch
+Patch124: 0124.patch
+Patch125: 0125.patch
+Patch126: 0126.patch
+Patch127: 0127.patch
+Patch128: 0128.patch
+Patch129: 0129.patch
+Patch130: 0130.patch
+Patch131: 0131.patch
+Patch132: 0132.patch
+Patch133: 0133.patch
+Patch134: 0134.patch
 
 Source1: https://www.gnu.org/licenses/lgpl-2.1.txt
 
@@ -228,7 +260,8 @@ Requires: %{name} = %{version}-%{release}
 %endif
 Requires: iputils
 Requires: iproute
-Requires: dhclient
+Requires: (NetworkManager >= 1.20 or dhclient)
+Suggests: NetworkManager
 Obsoletes: dracut-generic < 008
 Provides:  dracut-generic = %{version}-%{release}
 
@@ -449,6 +482,7 @@ install -m 0755 51-dracut-rescue-postinst.sh $RPM_BUILD_ROOT%{_sysconfdir}/kerne
 %{dracutlibdir}/modules.d/03modsign
 %{dracutlibdir}/modules.d/03rescue
 %{dracutlibdir}/modules.d/04watchdog
+%{dracutlibdir}/modules.d/04watchdog-modules
 %{dracutlibdir}/modules.d/05busybox
 %{dracutlibdir}/modules.d/06rngd
 %{dracutlibdir}/modules.d/10i18n
@@ -473,6 +507,7 @@ install -m 0755 51-dracut-rescue-postinst.sh $RPM_BUILD_ROOT%{_sysconfdir}/kerne
 %{dracutlibdir}/modules.d/95debug
 %{dracutlibdir}/modules.d/95fstab-sys
 %{dracutlibdir}/modules.d/95lunmask
+%{dracutlibdir}/modules.d/95nvmf
 %{dracutlibdir}/modules.d/95resume
 %{dracutlibdir}/modules.d/95rootfs-block
 %{dracutlibdir}/modules.d/95terminfo
@@ -590,16 +625,60 @@ echo '# Since rhel-8.3 dracut moved to use NetworkManager
 add_dracutmodules+=" network-legacy "' > /etc/dracut.conf.d/50-network-legacy.conf
 
 %changelog
-* Tue Dec 15 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-95.git20200804.4
+* Thu Jan 21 2021 Lukas Nykryn <lnykryn@redhat.com> - 049-135.git20210121
+- 95fcoe: default rd.nofcoe to false
+
+* Thu Jan 14 2021 Lukas Nykryn <lnykryn@redhat.com> - 049-134.git20210114
+- spec: dracut-network is happy with either NM or dhclient
+
+* Tue Jan 12 2021 Lukas Nykryn <lnykryn@redhat.com> - 049-133.git20210112
+- 95fcoe: Fix startup when fcoe module is included
+- Fix pre-trigger stage by replacing exit with return in
+
+* Thu Jan 07 2021 Lukas Nykryn <lnykryn@redhat.com> - 049-131.git20210107
+- 00systemd: when putting systemd-vconsole-setup.service as a
+- 51-dracut-rescue.install: Don't use BLS fragment shipped by
+
+* Thu Jan 07 2021 Lukas Nykryn <lnykryn@redhat.com> - 049-129.git20210107
+- Add a --hostonly-nics option
+- dracut-install: ignore bogus preload libs
+
+* Thu Jan 07 2021 Lukas Nykryn <lnykryn@redhat.com> - 049-127.git20210107
+- match the whole string
+- match simplified rd.zfcp format too
+- base: hardcode rhel red
+- 95iscsi:
+- iscsi: fix error messages with iSCSI root
+- 95nvmf: add module for NVMe-oF
+- Write dns values passed by ip argument to ifcfg-* files
+- dracut.sh: added help for --regenerate-all
+- 35network-legacy: fix classless static route parsing
+- network: fix glob matching ipv6 addresses
+- dasd: only install /etc/dasd.conf if present
+- 90multipath: install kpartx's 11-dm-parts.rules
+- network/net-lib.sh: Configure all iBFT interfaces
+- Change the order of NFS servers during the boot NFS server
+- install: string_hash_func should not be fed with NULL
+- Consider also drm_dev_register when looking for gpu driver
+- fix graphics startup failure with the rhgb paramter in
+- Configure the runner for team interfaces
+- network-manager: set kernel hostname from the command line
+- 95nvmf: add NVMe over TCP support
+- 95fcoe: Add the rd.nofcoe option to disable the FCoE module
+- 04watchdog: split the watchdog module install
+- dracut.spec: include the 04watchdog-modules module
+- 95fcoe: ensure needed modules are installed
+
+* Tue Dec 15 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-103.git20201215
 - dracut-systemd: create the initrd.target.wants directory
 
-* Mon Nov 30 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-95.git20200804.3
+* Mon Nov 30 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-102.git20201130
 - multipathd: fix the comparison
 
-* Mon Nov 30 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-95.git20200804.2
+* Mon Nov 30 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-101.git20201130
 - fix backport of 70b19acf
 
-* Fri Nov 20 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-95.git20200804.1
+* Fri Nov 20 2020 Lukas Nykryn <lnykryn@redhat.com> - 049-100.git20201120
 - multipath: require kpartx binary
 - Replace ln with systemctl
 - multipath: add automatic configuration for multipath

@@ -22,3 +22,4 @@ index 1387433a..9a0f476c 100755
      for i in \
          dracut-cmdline.service \
          dracut-cmdline-ask.service \
+

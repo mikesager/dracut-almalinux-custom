@@ -1,0 +1,31 @@
+From 1651c3074f596b80478473a126c02c27398429dd Mon Sep 17 00:00:00 2001
+From: Daniel Molkentin <dmolkentin@suse.com>
+Date: Thu, 18 Jul 2019 11:29:29 +0200
+Subject: [PATCH] 95fcoe: Fix startup when fcoe module is included
+
+The parse-fcoe.sh hook is sourced, and hence must not contain
+exit 0 calls. Otherwise, the cmdline sequence will be interupted,
+and no error will be reported to systemd. Use return instead.
+
+Reference: boo#1136977
+(cherry picked from commit 4f194276417237168f5bc929ba847a23b6a4c77f)
+
+Resolves: #1914957
+---
+ modules.d/95fcoe/parse-fcoe.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/95fcoe/parse-fcoe.sh b/modules.d/95fcoe/parse-fcoe.sh
+index 7a6ff755..8bb55c6e 100755
+--- a/modules.d/95fcoe/parse-fcoe.sh
++++ b/modules.d/95fcoe/parse-fcoe.sh
+@@ -15,7 +15,7 @@
+ 
+ if ! getargbool 0 rd.nofcoe ; then
+ 	info "rd.nofcoe=0: skipping fcoe"
+-	exit 0
++	return 0
+ fi
+ 
+ [ -z "$fcoe" ] && fcoe=$(getarg fcoe=)
+

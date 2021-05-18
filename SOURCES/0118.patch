@@ -1,0 +1,36 @@
+From 561339d4d04c5481a3239017d714f035fc5bc55a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Marek=20Marczykowski-G=C3=B3recki?=
+ <marmarek@invisiblethingslab.com>
+Date: Tue, 3 Mar 2020 21:20:34 +0100
+Subject: [PATCH] Consider also drm_dev_register when looking for gpu driver
+
+DRM drivers are filtered for drm_crtc_init symbol,
+but not all drivers use it. Especially, cirrus driver
+doesn't use it since Linux 5.2.
+
+The practical result is text plymouth theme instead of graphical when in qemu.
+
+Fix it by looking also for drm_dev_register symbol.
+Suggested by @haraldh
+Fixes #712
+
+(cherry picked from commit ebeed55c073eeaf78b738fe2c91bb6327a2c3bfe)
+
+Resolves: #1874506
+---
+ modules.d/50drm/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/50drm/module-setup.sh b/modules.d/50drm/module-setup.sh
+index 23545e34..a1711c00 100755
+--- a/modules.d/50drm/module-setup.sh
++++ b/modules.d/50drm/module-setup.sh
+@@ -40,6 +40,6 @@ installkernel() {
+             fi
+         done
+     else
+-        dracut_instmods -o -s "drm_crtc_init" "=drivers/gpu/drm" "=drivers/staging"
++        dracut_instmods -o -s "drm_crtc_init|drm_dev_register" "=drivers/gpu/drm" "=drivers/staging"
+     fi
+ }
+

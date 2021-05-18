@@ -1,0 +1,27 @@
+From add76751a1bc290088ca650cbec0be3696beb8d6 Mon Sep 17 00:00:00 2001
+From: GuoChuang <guo.chuang@zte.com.cn>
+Date: Mon, 24 Aug 2020 14:03:48 +0800
+Subject: [PATCH] fix graphics startup failure with the rhgb paramter in
+ CentOS8.2
+
+(cherry picked from commit d76e9ad5d7b16edb3c544ed3888640bea0efbf72)
+
+Resolves: #1874506
+---
+ modules.d/50drm/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/50drm/module-setup.sh b/modules.d/50drm/module-setup.sh
+index a1711c00..b4ead7f2 100755
+--- a/modules.d/50drm/module-setup.sh
++++ b/modules.d/50drm/module-setup.sh
+@@ -33,7 +33,7 @@ installkernel() {
+     if [[ $hostonly ]]; then
+         for i in /sys/bus/{pci/devices,virtio/devices,soc/devices/soc?}/*/modalias; do
+             [[ -e $i ]] || continue
+-            if hostonly="" dracut_instmods --silent -s "drm_crtc_init" -S "iw_handler_get_spy" $(<$i); then
++            if hostonly="" dracut_instmods --silent -s "drm_crtc_init|drm_dev_register" -S "iw_handler_get_spy" $(<$i); then
+                 if strstr "$(modinfo -F filename $(<$i) 2>/dev/null)" radeon.ko; then
+                     hostonly='' instmods amdkfd
+                 fi
+

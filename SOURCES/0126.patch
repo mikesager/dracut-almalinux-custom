@@ -1,0 +1,30 @@
+From 8300849e5d8825c6b60dec682eec4767701e95ac Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Mon, 16 Nov 2020 15:24:14 +0800
+Subject: [PATCH] 95fcoe: ensure needed modules are installed
+
+If fcoe module is loaded, the initramfs will always try load libfcoe
+and bnx2fc, so also ensure they are installed if needed.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 4339d47cf810d8a79f20cf2b86d15af7ec859052)
+
+Resolves: #1898814
+---
+ modules.d/95fcoe/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/95fcoe/module-setup.sh b/modules.d/95fcoe/module-setup.sh
+index 63f45b52..c2224ec1 100755
+--- a/modules.d/95fcoe/module-setup.sh
++++ b/modules.d/95fcoe/module-setup.sh
+@@ -23,7 +23,7 @@ depends() {
+ 
+ # called by dracut
+ installkernel() {
+-    instmods fcoe 8021q edd
++    instmods fcoe libfcoe 8021q edd bnx2fc
+ }
+ 
+ get_vlan_parent() {
+

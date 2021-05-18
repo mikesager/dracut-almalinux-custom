@@ -1,0 +1,26 @@
+From e03445a5e40bb8d6de3d401495e8645a6c1db04c Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Thu, 7 Jan 2021 11:57:56 +0100
+Subject: [PATCH] 00systemd: when putting systemd-vconsole-setup.service as a
+ dependency ignore missing services
+
+rhel-only
+Resolves: #1906301
+---
+ modules.d/00systemd/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/00systemd/module-setup.sh b/modules.d/00systemd/module-setup.sh
+index 4ab2a896..1f0b5dad 100755
+--- a/modules.d/00systemd/module-setup.sh
++++ b/modules.d/00systemd/module-setup.sh
+@@ -225,7 +225,7 @@ install() {
+         systemd-ask-password-console.service \
+         systemd-ask-password-plymouth.service \
+         ; do
+-        systemctl -q --root "$initdir" add-wants "$i" systemd-vconsole-setup.service
++        systemctl -q --root "$initdir" add-wants "$i" systemd-vconsole-setup.service 2>/dev/null
+     done
+ 
+     mkdir -p "$initdir/etc/systemd"
+

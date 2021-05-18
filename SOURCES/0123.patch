@@ -1,0 +1,71 @@
+From 231c6e831262246af33696132c1be7c009477a96 Mon Sep 17 00:00:00 2001
+From: Patrick Talbert <ptalbert@redhat.com>
+Date: Fri, 30 Nov 2018 09:28:09 +0100
+Subject: [PATCH] 95fcoe: Add the rd.nofcoe option to disable the FCoE module
+ from the command line
+
+Images built with the fcoe module will always run the lldpad
+service as part of their pre-trigger scripts if the network
+is active. This prevents network installations in
+environments where, for security reasons, LLDPDU frames
+cause a switchport shutdown.
+
+Add a new rd.nofcoe option to cause dracut to skip the
+lldpad.sh script and the entire 95-fcoe module.
+
+Signed-off-by: Patrick Talbert <ptalbert@redhat.com>
+(cherry picked from commit 7c6d2ad916bd536dc2f082fd96ef837a5031e497)
+
+Resolves: #1885621
+---
+ dracut.cmdline.7.asc           | 3 +++
+ modules.d/95fcoe/lldpad.sh     | 5 +++++
+ modules.d/95fcoe/parse-fcoe.sh | 5 +++++
+ 3 files changed, 13 insertions(+)
+
+diff --git a/dracut.cmdline.7.asc b/dracut.cmdline.7.asc
+index e220defb..bf745575 100644
+--- a/dracut.cmdline.7.asc
++++ b/dracut.cmdline.7.asc
+@@ -779,6 +779,9 @@ iscsistart -b --param node.session.timeo.replacement_timeout=30
+ 
+ FCoE
+ ~~~~
++**rd.nofcoe=0**::
++    disable FCoE and lldpad
++
+ **fcoe=**__<edd|interface|MAC>__:__{dcb|nodcb}__:__{fabric|vn2vn}__::
+     Try to connect to a FCoE SAN through the NIC specified by _<interface>_ or
+     _<MAC>_ or EDD settings. The second argument specifies if DCB
+diff --git a/modules.d/95fcoe/lldpad.sh b/modules.d/95fcoe/lldpad.sh
+index d06a3bd8..c32feeed 100755
+--- a/modules.d/95fcoe/lldpad.sh
++++ b/modules.d/95fcoe/lldpad.sh
+@@ -1,5 +1,10 @@
+ #!/bin/bash
+ 
++if ! getargbool 0 rd.nofcoe ; then
++	info "rd.nofcoe=0: skipping lldpad activation"
++	exit 0
++fi
++
+ # Note lldpad will stay running after switchroot, the system initscripts
+ # are to kill it and start a new lldpad to take over. Data is transfered
+ # between the 2 using a shm segment
+diff --git a/modules.d/95fcoe/parse-fcoe.sh b/modules.d/95fcoe/parse-fcoe.sh
+index 12701cdb..7a6ff755 100755
+--- a/modules.d/95fcoe/parse-fcoe.sh
++++ b/modules.d/95fcoe/parse-fcoe.sh
+@@ -13,6 +13,11 @@
+ # fcoe=eth0:nodcb:vn2vn
+ # fcoe=4a:3f:4c:04:f8:d7:nodcb:fabric
+ 
++if ! getargbool 0 rd.nofcoe ; then
++	info "rd.nofcoe=0: skipping fcoe"
++	exit 0
++fi
++
+ [ -z "$fcoe" ] && fcoe=$(getarg fcoe=)
+ 
+ # If it's not set we don't continue
+

@@ -1,0 +1,25 @@
+From 27921953a7508209deece59d74e5a957a247278d Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Fri, 20 Nov 2020 10:33:56 +0100
+Subject: [PATCH] base: hardcode rhel red
+
+RHEL-only
+Resolves: #1650258
+---
+ modules.d/99base/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/99base/module-setup.sh b/modules.d/99base/module-setup.sh
+index 3578643c..d10aa6a2 100755
+--- a/modules.d/99base/module-setup.sh
++++ b/modules.d/99base/module-setup.sh
+@@ -74,7 +74,7 @@ install() {
+     VERSION+="dracut-$DRACUT_VERSION"
+     PRETTY_NAME+="dracut-$DRACUT_VERSION (Initramfs)"
+     VERSION_ID=$DRACUT_VERSION
+-    ANSI_COLOR="0;34"
++    ANSI_COLOR="0;31"
+ 
+     [ -e "${initdir}/usr/lib" ] || mkdir -m 0755 -p ${initdir}/usr/lib
+     {
+

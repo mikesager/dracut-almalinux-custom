@@ -1,0 +1,252 @@
+From f9883b51b1fafd30a91e9efda3260067a8f87ea5 Mon Sep 17 00:00:00 2001
+From: Enzo Matsumiya <ematsumiya@suse.de>
+Date: Mon, 3 Aug 2020 11:21:36 -0300
+Subject: [PATCH] 95nvmf: add NVMe over TCP support
+
+Add support to boot from an NVMe over TCP device.
+
+Example of supported command line formats:
+
+nvme.discover=tcp:192.168.1.3::4420
+nvme.discover=tcp:192.168.1.3 # will use 4420 as default svcid
+
+- Create is_nvmf() function to handle all fabrics types
+- Fix parse_nvmf_discover() to correctly use the default values
+- Auxiliary function to validate an IP connection
+- Fix inverted result for getargbool when reading "rd.nonvmf" command line parameter
+
+Requires rd.neednet=1
+Requires adding/replacing STARTMODE in /etc/sysconfig/network/ifcfg-ethX to "nfsroot"
+to avoid shutdown hanging in initiator
+
+Signed-off-by: Enzo Matsumiya <ematsumiya@suse.de>
+(cherry picked from commit 019610af266bcaef711715266bc0ca4be1044150)
+
+Resolves: #1885417
+---
+ modules.d/95nvmf/module-setup.sh                | 25 ++++---
+ modules.d/95nvmf/parse-nvmf-boot-connections.sh | 97 ++++++++++++++++++-------
+ 2 files changed, 84 insertions(+), 38 deletions(-)
+
+diff --git a/modules.d/95nvmf/module-setup.sh b/modules.d/95nvmf/module-setup.sh
+index db43ec01..418b5e0c 100755
+--- a/modules.d/95nvmf/module-setup.sh
++++ b/modules.d/95nvmf/module-setup.sh
+@@ -6,9 +6,9 @@ check() {
+     [ -f /etc/nvme/hostnqn ] || return 255
+     [ -f /etc/nvme/hostid ] || return 255
+ 
+-    is_nvme_fc() {
++    is_nvmf() {
+         local _dev=$1
+-        local traddr
++        local trtype
+ 
+         [[ -L "/sys/dev/block/$_dev" ]] || return 0
+         cd -P "/sys/dev/block/$_dev" || return 0
+@@ -18,19 +18,19 @@ check() {
+         for d in device/nvme* ; do
+             [ -L "$d" ] || continue
+             if readlink "$d" | grep -q nvme-fabrics ; then
+-                traddr=$(cat "$d"/address)
+-		break
+-	    fi
+-	done
+-        [[ "${traddr#traddr=nn-}" != "$traddr" ]]
++                trtype=$(cat "$d"/transport)
++                break
++            fi
++        done
++        [[ "$trtype" == "fc" ]] || [[ "$trtype" == "tcp" ]] || [[ "$trtype" == "rdma" ]]
+     }
+ 
+     [[ $hostonly ]] || [[ $mount_needs ]] && {
+         pushd . >/dev/null
+-        for_each_host_dev_and_slaves is_nvme_fc
+-        local _is_nvme_fc=$?
++        for_each_host_dev_and_slaves is_nvmf
++        local _is_nvmf=$?
+         popd >/dev/null
+-        [[ $_is_nvme_fc == 0 ]] || return 255
++        [[ $_is_nvmf == 0 ]] || return 255
+         if [ ! -f /sys/class/fc/fc_udev_device/nvme_discovery ] ; then
+             if [ ! -f /etc/nvme/discovery.conf ] ; then
+                 echo "No discovery arguments present"
+@@ -43,13 +43,14 @@ check() {
+ 
+ # called by dracut
+ depends() {
+-    echo bash rootfs-block
++    echo bash rootfs-block network
+     return 0
+ }
+ 
+ # called by dracut
+ installkernel() {
+     instmods nvme_fc lpfc qla2xxx
++    hostonly="" instmods nvme_tcp nvme_fabrics
+ }
+ 
+ # called by dracut
+@@ -76,6 +77,8 @@ install() {
+     inst_simple "/etc/nvme/hostnqn"
+     inst_simple "/etc/nvme/hostid"
+ 
++    inst_multiple ip sed
++
+     inst_multiple nvme
+     inst_multiple -o \
+         "$systemdsystemunitdir/nvm*-connect@.service" \
+diff --git a/modules.d/95nvmf/parse-nvmf-boot-connections.sh b/modules.d/95nvmf/parse-nvmf-boot-connections.sh
+index 0d16b871..61c6dec1 100755
+--- a/modules.d/95nvmf/parse-nvmf-boot-connections.sh
++++ b/modules.d/95nvmf/parse-nvmf-boot-connections.sh
+@@ -8,69 +8,102 @@
+ # Examples:
+ # nvmf.hostnqn=nqn.2014-08.org.nvmexpress:uuid:37303738-3034-584d-5137-333230423843
+ # nvmf.discover=rdma:192.168.1.3::4420
++# nvme.discover=tcp:192.168.1.3::4420
++# nvme.discover=tcp:192.168.1.3
+ # nvmf.discover=fc:auto
+ #
+ # Note: FC does autodiscovery, so typically there is no need to
+ # specify any discover parameters for FC.
+ #
+ 
++type is_ip >/dev/null 2>&1 || . /lib/net-lib.sh
++
++if getargbool 0 rd.nonvmf ; then
++    warn "rd.nonvmf=0: skipping nvmf"
++    return 0
++fi
++
++initqueue --onetime modprobe --all -b -q nvme nvme_tcp nvme_core nvme_fabrics
++
++traddr="none"
++trtype="none"
++hosttraddr="none"
++trsvcid=4420
++
++validate_ip_conn() {
++    if ! getargbool 0 rd.neednet ; then
++        warn "$trtype transport requires rd.neednet=1"
++        return 1
++    fi
++
++    local_address=$(ip -o route get to $traddr | sed -n 's/.*src \([0-9a-f.:]*\).*/\1/p')
++
++    # confirm we got a local IP address
++    if ! is_ip "$local_address" ; then
++        warn "$traddr is an invalid address";
++        return 1
++    fi
++
++    ifname=$(ip -o route get to $local_address | sed -n 's/.*dev \([^ ]*\).*/\1/p')
++
++    if ip l show "$ifname" >/dev/null 2>&1 ; then
++       warn "invalid network interface $ifname"
++       return 1
++    fi
++
++    # confirm there's a route to destination
++    if ip route get "$traddr" >/dev/null 2>&1 ; then
++        warn "no route to $traddr"
++        return 1
++    fi
++}
++
+ parse_nvmf_discover() {
+     OLDIFS="$IFS"
+     IFS=:
+-    trtype="none"
+-    traddr="none"
+-    hosttraddr="none"
+-    trsvcid=4420
+-
+     set $1
+     IFS="$OLDIFS"
+ 
+     case $# in
+         2)
+-            trtype=$1
+-            traddr=$2
++            [ -n "$1" ] && trtype=$1
++            [ -n "$2" ] && traddr=$2
+             ;;
+         3)
+-            trtype=$1
+-            traddr=$2
+-            hosttraddr=$3
++            [ -n "$1" ] && trtype=$1
++            [ -n "$2" ] && traddr=$2
++            [ -n "$3" ] && hosttraddr=$3
+             ;;
+         4)
+-            trtype=$1
+-            traddr=$2
+-            hosttraddr=$3
+-            trsvcid=$4
++            [ -n "$1" ] && trtype=$1
++            [ -n "$2" ] && traddr=$2
++            [ -n "$3" ] && hosttraddr=$3
++            [ -n "$4" ] && trsvcid=$4
+             ;;
+         *)
+             warn "Invalid arguments for nvmf.discover=$1"
+             return 1
+             ;;
+     esac
+-    if [ -z "$traddr" ] ; then
++    if [ "$traddr" = "none" ] ; then
+         warn "traddr is mandatory for $trtype"
+         return 1;
+     fi
+-    [ -z "$hosttraddr" ] && hosttraddr="none"
+-    [ -z "$trsvcid" ] && trsvcid="none"
+     if [ "$trtype" = "fc" ] ; then
+-        if [ -z "$hosttraddr" ] ; then
++        if [ "$hosttraddr" = "none" ] ; then
+             warn "host traddr is mandatory for fc"
+             return 1
+         fi
+     elif [ "$trtype" != "rdma" ] && [ "$trtype" != "tcp" ] ; then
+         warn "unsupported transport $trtype"
+         return 1
+-    elif [ -z "$trsvcid" ] ; then
+-        trsvcid=4420
++    fi
++    if [ "$trtype" = "tcp" ]; then
++        validate_ip_conn
+     fi
+     echo "--transport=$trtype --traddr=$traddr --host-traddr=$hosttraddr --trsvcid=$trsvcid" >> /etc/nvme/discovery.conf
+ }
+ 
+-if ! getargbool 0 rd.nonvmf ; then
+-	info "rd.nonvmf=0: skipping nvmf"
+-	return 0
+-fi
+-
+ nvmf_hostnqn=$(getarg nvmf.hostnqn=)
+ if [ -n "$nvmf_hostnqn" ] ; then
+     echo "$nvmf_hostnqn" > /etc/nvme/hostnqn
+@@ -89,7 +122,17 @@ done
+ [ -f "/etc/nvme/hostid" ] || exit 0
+ 
+ if [ -f "/etc/nvme/discovery.conf" ] ; then
+-    /sbin/initqueue --onetime --unique --name nvme-discover /usr/sbin/nvme connect-all
++    if [ "$trtype" = "tcp" ] ; then
++        /sbin/initqueue --settled --onetime --unique --name nvme-discover /usr/sbin/nvme connect-all
++        > /tmp/net.$ifname.did-setup
++    else
++        /sbin/initqueue --onetime --unique --name nvme-discover /usr/sbin/nvme connect-all
++    fi
+ else
+-    /sbin/initqueue --finished --unique --name nvme-fc-autoconnect echo 1 > /sys/class/fc/fc_udev_device/nvme_discovery
++    if [ "$trtype" = "tcp" ] ; then
++        /sbin/initqueue --settled --onetime --unique /usr/sbin/nvme connect-all -t tcp -a $traddr -s $trsvcid
++        > /tmp/net.$ifname.did-setup
++    else
++        /sbin/initqueue --finished --unique --name nvme-fc-autoconnect echo 1 > /sys/class/fc/fc_udev_device/nvme_discovery
++    fi
+ fi
+

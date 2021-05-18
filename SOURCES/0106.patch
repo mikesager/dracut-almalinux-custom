@@ -1,0 +1,30 @@
+From dc6438116746147e55c624a58116cc7f9f254c8a Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Thu, 7 Feb 2019 16:09:43 +0100
+Subject: [PATCH] 95iscsi:
+ /sys/devices/platform/*/flashnode_sess-*/is_boot_target sometimes does not
+ exist
+
+cat: '/sys/devices/platform/host2/flashnode_sess-*/is_boot_target': No such file or directory
+/usr/lib/dracut/modules.d/95iscsi/module-setup.sh: line 90: [: -eq: unary operator expected
+
+(cherry picked from commit 94eccd15c533f9e10cb0ccdec7e8a42c29bbc8d0)
+
+Resolves: #1552619
+---
+ modules.d/95iscsi/module-setup.sh | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/modules.d/95iscsi/module-setup.sh b/modules.d/95iscsi/module-setup.sh
+index 47a92e94..dc63ef46 100755
+--- a/modules.d/95iscsi/module-setup.sh
++++ b/modules.d/95iscsi/module-setup.sh
+@@ -86,6 +86,7 @@ install_iscsiroot() {
+     iscsi_host=${host##*/}
+ 
+     for flash in ${host}/flashnode_sess-* ; do
++        [ ! -e "$flash/is_boot_target" ] && continue
+         is_boot=$(cat $flash/is_boot_target)
+         if [ $is_boot -eq 1 ] ; then
+             # qla4xxx flashnode session; skip iBFT discovery
+

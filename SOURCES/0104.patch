@@ -1,0 +1,29 @@
+From b76aac712f822e75951b10f516c99c573b89e4fe Mon Sep 17 00:00:00 2001
+From: David Tardon <dtardon@redhat.com>
+Date: Tue, 4 Aug 2020 14:18:54 +0200
+Subject: [PATCH] match simplified rd.zfcp format too
+
+The simplified format was introduced by commit
+c8aa1d949aecaf146b0a0e1ce269f69e6048dc5a .
+
+(cherry picked from commit d9e27b091717a1ce1c58cc911d9d7b5ec3ed901e)
+
+Resolves: #1552619
+---
+ modules.d/95zfcp/parse-zfcp.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/95zfcp/parse-zfcp.sh b/modules.d/95zfcp/parse-zfcp.sh
+index fb4d9c9e..5aa6add8 100755
+--- a/modules.d/95zfcp/parse-zfcp.sh
++++ b/modules.d/95zfcp/parse-zfcp.sh
+@@ -3,7 +3,7 @@
+ getargbool 1 rd.zfcp.conf -d -n rd_NO_ZFCPCONF || rm /etc/zfcp.conf
+ 
+ for zfcp_arg in $(getargs rd.zfcp -d 'rd_ZFCP='); do
+-    echo $zfcp_arg | grep '^0\.[0-9a-fA-F]\.[0-9a-fA-F]\{4\},0x[0-9a-fA-F]\{16\},0x[0-9a-fA-F]\{16\}$' >/dev/null
++    echo $zfcp_arg | grep '^0\.[0-9a-fA-F]\.[0-9a-fA-F]\{4\}\(,0x[0-9a-fA-F]\{16\},0x[0-9a-fA-F]\{16\}\)\?$' >/dev/null
+     test $? -ne 0 && die "For argument 'rd.zfcp=$zfcp_arg'\nSorry, invalid format."
+     (
+         IFS=","
+

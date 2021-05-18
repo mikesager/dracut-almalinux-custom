@@ -1,0 +1,100 @@
+From 3085acbec79b3649ac906529778f86a14f330e62 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Wed, 21 Oct 2020 16:18:07 +0800
+Subject: [PATCH] Add a --hostonly-nics option
+
+Currently when network is enabled, dracut will install all network
+drivers that are currently loaded, but some time only one NIC is needed
+for the initramfs.
+
+So for strict hostonly mode, add a --hostonly-nics option, user can
+provide a list of NICs to be enabled, and only needed drivers for
+specifed NICs will be installed so save space.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 1e92f7285d42fbd3bc01f534f9bd646f6fdd9504)
+
+Cherry-picked from: 1e92f7285d42fbd3bc01f534f9bd646f6fdd9504
+Resolves: #1890041
+
+Cherry-picked from: c69961b403c1c83bb4717e1df1470e71cd0245d1
+Resolves: #1890041
+---
+ dracut.sh                                          |  6 ++++++
+ modules.d/90kernel-network-modules/module-setup.sh | 18 +++++++++++++++---
+ 2 files changed, 21 insertions(+), 3 deletions(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index e70dab16..01abe7a4 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -173,6 +173,8 @@ Creates initial ramdisk images for preloading modules
+   --hostonly-i18n       Install only needed keyboard and font files according
+                         to the host configuration (default).
+   --no-hostonly-i18n    Install all keyboard and font files available.
++  --hostonly-nics [LIST]
++                        Only enable listed NICs in the initramfs.
+   --persistent-policy [POLICY]
+                         Use [POLICY] to address disks and partitions.
+                         POLICY can be any directory name found in /dev/disk.
+@@ -400,6 +402,7 @@ rearrange_params()
+         --long kernel-image: \
+         --long no-hostonly-i18n \
+         --long hostonly-i18n \
++        --long hostonly-nics: \
+         --long no-machineid \
+         -- "$@")
+ 
+@@ -561,6 +564,8 @@ while :; do
+                        hostonly_cmdline_l="yes" ;;
+         --hostonly-i18n)
+                        i18n_install_all_l="no" ;;
++        --hostonly-nics)
++                       hostonly_nics_l+=("$2");           PARMS_TO_STORE+=" '$2'"; shift;;
+         --no-hostonly-i18n)
+                        i18n_install_all_l="yes" ;;
+         --no-hostonly-cmdline)
+@@ -720,6 +725,7 @@ unset NPATH
+ (( ${#fstab_lines_l[@]} )) && fstab_lines+=( "${fstab_lines_l[@]}" )
+ (( ${#install_items_l[@]} )) && install_items+=" ${install_items_l[@]} "
+ (( ${#install_optional_items_l[@]} )) && install_optional_items+=" ${install_optional_items_l[@]} "
++(( ${#hostonly_nics_l[@]} )) && hostonly_nics+=" ${hostonly_nics_l[@]} "
+ 
+ # these options override the stuff in the config file
+ (( ${#dracutmodules_l[@]} )) && dracutmodules="${dracutmodules_l[@]}"
+diff --git a/modules.d/90kernel-network-modules/module-setup.sh b/modules.d/90kernel-network-modules/module-setup.sh
+index 600ef112..f36d31f7 100755
+--- a/modules.d/90kernel-network-modules/module-setup.sh
++++ b/modules.d/90kernel-network-modules/module-setup.sh
+@@ -14,15 +14,27 @@ depends() {
+ installkernel() {
+     # Include wired net drivers, excluding wireless
+     local _arch=$(uname -m)
+-    local _net_drivers='eth_type_trans|register_virtio_device|usbnet_open'
++    local _net_symbols='eth_type_trans|register_virtio_device|usbnet_open'
+     local _unwanted_drivers='/(wireless|isdn|uwb|net/ethernet|net/phy|net/team)/'
++    local _net_drivers
+ 
+     if [ "$_arch" = "s390" -o "$_arch" = "s390x" ]; then
+-        _s390drivers="=drivers/s390/net"
++        dracut_instmods -o -P ".*${_unwanted_drivers}.*" -s "$_net_symbols" "=drivers/s390/net"
+     fi
+ 
+-    dracut_instmods -o -P ".*${_unwanted_drivers}.*" -s "$_net_drivers" "=drivers/net" ${_s390drivers:+"$_s390drivers"}
++    if [[ $hostonly_mode == 'strict' ]] && [[ $hostonly_nics ]]; then
++        for _nic in $hostonly_nics; do
++            _net_drivers=$(get_dev_module /sys/class/net/$_nic)
++            if ! [[ $_net_drivers ]]; then
++                derror "--hostonly-nics contains invalid NIC '$_nic'"
++                continue
++            fi
++            hostonly="" instmods $_net_drivers
++        done
++        return 0
++    fi
+ 
++    dracut_instmods -o -P ".*${_unwanted_drivers}.*" -s "$_net_symbols" "=drivers/net"
+     #instmods() will take care of hostonly
+     instmods \
+         =drivers/net/phy \
+

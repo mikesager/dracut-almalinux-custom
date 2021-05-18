@@ -1,0 +1,29 @@
+From b14ba27a3cdc7a71ded3c4b424129ffd61d7be85 Mon Sep 17 00:00:00 2001
+From: Denis Volkov <denis@simpletexting.net>
+Date: Tue, 4 Aug 2020 19:51:27 +0500
+Subject: [PATCH] Change the order of NFS servers during the boot NFS server
+ provided by DHCP in next-server option has higher priority than DHCP-server
+ itself
+
+(cherry picked from commit 09a691af3b63543fe58faa02661f785b907a78a6)
+
+Resolves: #1859513
+---
+ modules.d/95nfs/nfs-lib.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/95nfs/nfs-lib.sh b/modules.d/95nfs/nfs-lib.sh
+index 1ba4f5ff..95844f58 100755
+--- a/modules.d/95nfs/nfs-lib.sh
++++ b/modules.d/95nfs/nfs-lib.sh
+@@ -112,8 +112,8 @@ nfsroot_from_dhcp() {
+     [ -n "$new_root_path" ] && nfsroot_to_var "$nfs:$new_root_path"
+     [ -z "$path" ] && [ "$(getarg root=)" = "/dev/nfs" ] && path=/tftpboot/%s
+     [ -z "$server" ] && server=$srv
+-    [ -z "$server" ] && server=$new_dhcp_server_identifier
+     [ -z "$server" ] && server=$new_next_server
++    [ -z "$server" ] && server=$new_dhcp_server_identifier
+     [ -z "$server" ] && server=${new_root_path%%:*}
+ }
+ 
+

@@ -1,0 +1,161 @@
+From 4e1d7a423253d4e3476b003fc2e17c2ac44bd8ca Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Thu, 10 Sep 2020 02:18:02 +0800
+Subject: [PATCH] 04watchdog: split the watchdog module install
+
+In some cases, user only want to include the watchdog module, not the
+wdctl or any other userspace helper. For example, systemd have a
+RebootWatchdogSec option that use watchdog to prevent reboot hangs. And
+it can help prevent machines hangs when reboot directly within the
+initramfs stage. So split the module installation to a standlone module.
+
+Also when watchdog-module get included, install driver for all loaded
+watchdog instaed of only install driver for active watchdog. Both
+watchdog and watchdog-module return 255 in check(), so it's enabled only
+when manually included, the watchdog may get configured/activated later.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 39d90012a652fa4d9d2534d0168ddad8cacec248)
+
+Resolves: #1890039
+---
+ modules.d/04watchdog-modules/module-setup.sh | 61 ++++++++++++++++++++++++++++
+ modules.d/04watchdog/module-setup.sh         | 50 +----------------------
+ 2 files changed, 63 insertions(+), 48 deletions(-)
+
+diff --git a/modules.d/04watchdog-modules/module-setup.sh b/modules.d/04watchdog-modules/module-setup.sh
+new file mode 100755
+index 00000000..5fbd769b
+--- /dev/null
++++ b/modules.d/04watchdog-modules/module-setup.sh
+@@ -0,0 +1,61 @@
++#!/bin/bash
++
++# called by dracut
++check() {
++    return 255
++}
++
++# called by dracut
++depends() {
++    return 0
++}
++
++# called by dracut
++install() {
++    return 0
++}
++
++installkernel() {
++    local -A _drivers
++    local _alldrivers _wdtdrv _wdtppath _dir
++    [[ -d /sys/class/watchdog/ ]] || return
++    for _dir in /sys/class/watchdog/*; do
++        [[ -d "$_dir" ]] || continue
++        [[ -f "$_dir/state" ]] || continue
++        # device/modalias will return driver of this device
++        _wdtdrv=$(< "$_dir/device/modalias")
++        # There can be more than one module represented by same
++        # modalias. Currently load all of them.
++        # TODO: Need to find a way to avoid any unwanted module
++        # represented by modalias
++        _wdtdrv=$(modprobe --set-version "$kernel" -R $_wdtdrv 2>/dev/null)
++        if [[ $_wdtdrv ]]; then
++            instmods $_wdtdrv
++            for i in $_wdtdrv; do
++                _drivers[$i]=1
++            done
++        fi
++        # however in some cases, we also need to check that if there is
++        # a specific driver for the parent bus/device.  In such cases
++        # we also need to enable driver for parent bus/device.
++        _wdtppath=$(readlink -f "$_dir/device")
++        while [[ -d "$_wdtppath" ]] && [[ "$_wdtppath" != "/sys" ]]; do
++            _wdtppath=$(readlink -f "$_wdtppath/..")
++            [[ -f "$_wdtppath/modalias" ]] || continue
++
++            _wdtdrv=$(< "$_wdtppath/modalias")
++            _wdtdrv=$(modprobe --set-version "$kernel" -R $_wdtdrv 2>/dev/null)
++            if [[ $_wdtdrv ]]; then
++                instmods $_wdtdrv
++                for i in $_wdtdrv; do
++                    _drivers[$i]=1
++                done
++            fi
++        done
++    done
++    # ensure that watchdog module is loaded as early as possible
++    _alldrivers="${!_drivers[*]}"
++    [[ $_alldrivers ]] && echo "rd.driver.pre=${_alldrivers// /,}" > ${initdir}/etc/cmdline.d/00-watchdog.conf
++
++    return 0
++}
+diff --git a/modules.d/04watchdog/module-setup.sh b/modules.d/04watchdog/module-setup.sh
+index 7566d651..15bcd897 100755
+--- a/modules.d/04watchdog/module-setup.sh
++++ b/modules.d/04watchdog/module-setup.sh
+@@ -7,7 +7,7 @@ check() {
+ 
+ # called by dracut
+ depends() {
+-    return 0
++    return "watchdog-modules"
+ }
+ 
+ # called by dracut
+@@ -27,53 +27,7 @@ install() {
+         inst_hook cleanup   00 "$moddir/watchdog.sh"
+         inst_hook cleanup   99 "$moddir/watchdog.sh"
+     fi
++
+     inst_hook emergency 02 "$moddir/watchdog-stop.sh"
+     inst_multiple -o wdctl
+ }
+-
+-installkernel() {
+-    local -A _drivers
+-    local _alldrivers _active _wdtdrv _wdtppath _dir
+-    [[ -d /sys/class/watchdog/ ]] || return
+-    for _dir in /sys/class/watchdog/*; do
+-        [[ -d "$_dir" ]] || continue
+-        [[ -f "$_dir/state" ]] || continue
+-        _active=$(< "$_dir/state")
+-        ! [[ $hostonly ]] || [[ "$_active" =  "active" ]] || continue
+-        # device/modalias will return driver of this device
+-        _wdtdrv=$(< "$_dir/device/modalias")
+-        # There can be more than one module represented by same
+-        # modalias. Currently load all of them.
+-        # TODO: Need to find a way to avoid any unwanted module
+-        # represented by modalias
+-        _wdtdrv=$(modprobe --set-version "$kernel" -R $_wdtdrv 2>/dev/null)
+-        if [[ $_wdtdrv ]]; then
+-            instmods $_wdtdrv
+-            for i in $_wdtdrv; do
+-                _drivers[$i]=1
+-            done
+-        fi
+-        # however in some cases, we also need to check that if there is
+-        # a specific driver for the parent bus/device.  In such cases
+-        # we also need to enable driver for parent bus/device.
+-        _wdtppath=$(readlink -f "$_dir/device")
+-        while [[ -d "$_wdtppath" ]] && [[ "$_wdtppath" != "/sys" ]]; do
+-            _wdtppath=$(readlink -f "$_wdtppath/..")
+-            [[ -f "$_wdtppath/modalias" ]] || continue
+-
+-            _wdtdrv=$(< "$_wdtppath/modalias")
+-            _wdtdrv=$(modprobe --set-version "$kernel" -R $_wdtdrv 2>/dev/null)
+-            if [[ $_wdtdrv ]]; then
+-                instmods $_wdtdrv
+-                for i in $_wdtdrv; do
+-                    _drivers[$i]=1
+-                done
+-            fi
+-        done
+-    done
+-    # ensure that watchdog module is loaded as early as possible
+-    _alldrivers="${!_drivers[*]}"
+-    [[ $_alldrivers ]] && echo "rd.driver.pre=${_alldrivers// /,}" > ${initdir}/etc/cmdline.d/00-watchdog.conf
+-
+-    return 0
+-}
+

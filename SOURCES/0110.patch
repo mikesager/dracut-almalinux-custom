@@ -1,0 +1,39 @@
+From 96c6e40774a78f2509aab1260d0f6aaa3b413597 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Renaud=20M=C3=A9trich?= <rmetrich@redhat.com>
+Date: Thu, 13 Feb 2020 11:37:13 +0100
+Subject: [PATCH] dracut.sh: added help for --regenerate-all
+
+(cherry picked from commit cdc9cd0e41615d5f5f5af7887991a311cf5c4c7a)
+
+Resolves: #1802522
+---
+ dracut.sh | 8 +++++---
+ 1 file changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index 86e95449..e70dab16 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -182,8 +182,8 @@ Creates initial ramdisk images for preloading modules
+   --mount "[DEV] [MP] [FSTYPE] [FSOPTS]"
+                         Mount device [DEV] on mountpoint [MP] with filesystem
+                         [FSTYPE] and options [FSOPTS] in the initramfs
+-  --mount "[MP]"	Same as above, but [DEV], [FSTYPE] and [FSOPTS] are
+-			determined by looking at the current mounts.
++  --mount "[MP]"        Same as above, but [DEV], [FSTYPE] and [FSOPTS] are
++                        determined by looking at the current mounts.
+   --add-device "[DEV]"  Bring up [DEV] in initramfs
+   -i, --include [SOURCE] [TARGET]
+                         Include the files in the SOURCE directory into the
+@@ -234,7 +234,9 @@ Creates initial ramdisk images for preloading modules
+   --uefi                Create an UEFI executable with the kernel cmdline and
+                         kernel combined
+   --uefi-stub [FILE]    Use the UEFI stub [FILE] to create an UEFI executable
+-  --kernel-image [FILE] location of the kernel image
++  --kernel-image [FILE] Location of the kernel image
++  --regenerate-all      Regenerate all initramfs images at the default location
++                        for the kernel versions found on the system
+ 
+ If [LIST] has multiple arguments, then you have to put these in quotes.
+ 
+

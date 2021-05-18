@@ -1,0 +1,27 @@
+From 6297e8accadcddcdd390f4e0583f9bde29f3758e Mon Sep 17 00:00:00 2001
+From: Lubomir Rintel <lkundrak@v3.sk>
+Date: Thu, 7 Nov 2019 14:03:23 +0100
+Subject: [PATCH] spec: dracut-network is happy with either NM or dhclient
+
+(cherry picked from commit e8638076857621b28eb4dc36cdd49a94992835b7)
+
+Resolves: #1916174
+---
+ dracut.spec | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/dracut.spec b/dracut.spec
+index b371118e..fa3e4b99 100644
+--- a/dracut.spec
++++ b/dracut.spec
+@@ -125,7 +125,8 @@ Requires: %{name} = %{version}-%{release}
+ %endif
+ Requires: iputils
+ Requires: iproute
+-Requires: dhclient
++Requires: (NetworkManager >= 1.20 or dhclient)
++Suggests: NetworkManager
+ Obsoletes: dracut-generic < 008
+ Provides:  dracut-generic = %{version}-%{release}
+ 
+

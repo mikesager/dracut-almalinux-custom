@@ -1,0 +1,225 @@
+From 0954a69e884e99af5082f93e2de30fa8dfdba83e Mon Sep 17 00:00:00 2001
+From: Hannes Reinecke <hare@suse.com>
+Date: Mon, 25 Nov 2019 11:33:42 +0100
+Subject: [PATCH] 95nvmf: add module for NVMe-oF
+
+Add a module for booting from NVMe-oF devices.
+
+Signed-off-by: Hannes Reinecke <hare@suse.de>
+(cherry picked from commit 2f03d69f9dfdc0c905c4d9cb69ee93a5256123cb)
+
+Resolves: #1731601
+---
+ dracut.spec                                     |  1 +
+ modules.d/95nvmf/module-setup.sh                | 88 +++++++++++++++++++++++
+ modules.d/95nvmf/parse-nvmf-boot-connections.sh | 95 +++++++++++++++++++++++++
+ 3 files changed, 184 insertions(+)
+
+diff --git a/dracut.spec b/dracut.spec
+index a8076c18..3db5c0cf 100644
+--- a/dracut.spec
++++ b/dracut.spec
+@@ -370,6 +370,7 @@ install -m 0755 51-dracut-rescue-postinst.sh $RPM_BUILD_ROOT%{_sysconfdir}/kerne
+ %{dracutlibdir}/modules.d/95debug
+ %{dracutlibdir}/modules.d/95fstab-sys
+ %{dracutlibdir}/modules.d/95lunmask
++%{dracutlibdir}/modules.d/95nvmf
+ %{dracutlibdir}/modules.d/95resume
+ %{dracutlibdir}/modules.d/95rootfs-block
+ %{dracutlibdir}/modules.d/95terminfo
+diff --git a/modules.d/95nvmf/module-setup.sh b/modules.d/95nvmf/module-setup.sh
+new file mode 100755
+index 00000000..db43ec01
+--- /dev/null
++++ b/modules.d/95nvmf/module-setup.sh
+@@ -0,0 +1,88 @@
++#!/bin/bash
++
++# called by dracut
++check() {
++    require_binaries nvme || return 1
++    [ -f /etc/nvme/hostnqn ] || return 255
++    [ -f /etc/nvme/hostid ] || return 255
++
++    is_nvme_fc() {
++        local _dev=$1
++        local traddr
++
++        [[ -L "/sys/dev/block/$_dev" ]] || return 0
++        cd -P "/sys/dev/block/$_dev" || return 0
++        if [ -f partition ] ; then
++            cd ..
++        fi
++        for d in device/nvme* ; do
++            [ -L "$d" ] || continue
++            if readlink "$d" | grep -q nvme-fabrics ; then
++                traddr=$(cat "$d"/address)
++		break
++	    fi
++	done
++        [[ "${traddr#traddr=nn-}" != "$traddr" ]]
++    }
++
++    [[ $hostonly ]] || [[ $mount_needs ]] && {
++        pushd . >/dev/null
++        for_each_host_dev_and_slaves is_nvme_fc
++        local _is_nvme_fc=$?
++        popd >/dev/null
++        [[ $_is_nvme_fc == 0 ]] || return 255
++        if [ ! -f /sys/class/fc/fc_udev_device/nvme_discovery ] ; then
++            if [ ! -f /etc/nvme/discovery.conf ] ; then
++                echo "No discovery arguments present"
++                return 255
++            fi
++        fi
++    }
++    return 0
++}
++
++# called by dracut
++depends() {
++    echo bash rootfs-block
++    return 0
++}
++
++# called by dracut
++installkernel() {
++    instmods nvme_fc lpfc qla2xxx
++}
++
++# called by dracut
++cmdline() {
++    local _hostnqn
++    local _hostid
++    if [ -f /etc/nvme/hostnqn ] ; then
++        _hostnqn=$(cat /etc/nvme/hostnqn)
++        echo -n " nvmf.hostnqn=${_hostnqn}"
++    fi
++    if [ -f /etc/nvme/hostid ] ; then
++        _hostid=$(cat /etc/nvme/hostid)
++        echo -n " nvmf.hostid=${_hostid}"
++    fi
++    echo ""
++}
++
++# called by dracut
++install() {
++    if [[ $hostonly_cmdline == "yes" ]]; then
++	local _nvmf_args=$(cmdline)
++	[[ "$_nvmf_args" ]] && printf "%s" "$_nvmf_args" >> "${initdir}/etc/cmdline.d/95nvmf-args.conf"
++    fi
++    inst_simple "/etc/nvme/hostnqn"
++    inst_simple "/etc/nvme/hostid"
++
++    inst_multiple nvme
++    inst_multiple -o \
++        "$systemdsystemunitdir/nvm*-connect@.service" \
++        "$systemdsystemunitdir/nvm*-connect.target"
++    inst_hook cmdline 99 "$moddir/parse-nvmf-boot-connections.sh"
++    inst_simple "/etc/nvme/discovery.conf"
++    inst_rules /usr/lib/udev/rules.d/70-nvm*-autoconnect.rules
++    inst_rules /usr/lib/udev/rules.d/71-nvmf-iopolicy-netapp.rules
++    dracut_need_initqueue
++}
+diff --git a/modules.d/95nvmf/parse-nvmf-boot-connections.sh b/modules.d/95nvmf/parse-nvmf-boot-connections.sh
+new file mode 100755
+index 00000000..0d16b871
+--- /dev/null
++++ b/modules.d/95nvmf/parse-nvmf-boot-connections.sh
+@@ -0,0 +1,95 @@
++#!/bin/sh
++#
++# Supported formats:
++# nvmf.hostnqn=<hostnqn>
++# nvmf.hostid=<hostid>
++# nvmf.discover=<transport>:<traddr>:<host-traddr>:<trsvcid>
++#
++# Examples:
++# nvmf.hostnqn=nqn.2014-08.org.nvmexpress:uuid:37303738-3034-584d-5137-333230423843
++# nvmf.discover=rdma:192.168.1.3::4420
++# nvmf.discover=fc:auto
++#
++# Note: FC does autodiscovery, so typically there is no need to
++# specify any discover parameters for FC.
++#
++
++parse_nvmf_discover() {
++    OLDIFS="$IFS"
++    IFS=:
++    trtype="none"
++    traddr="none"
++    hosttraddr="none"
++    trsvcid=4420
++
++    set $1
++    IFS="$OLDIFS"
++
++    case $# in
++        2)
++            trtype=$1
++            traddr=$2
++            ;;
++        3)
++            trtype=$1
++            traddr=$2
++            hosttraddr=$3
++            ;;
++        4)
++            trtype=$1
++            traddr=$2
++            hosttraddr=$3
++            trsvcid=$4
++            ;;
++        *)
++            warn "Invalid arguments for nvmf.discover=$1"
++            return 1
++            ;;
++    esac
++    if [ -z "$traddr" ] ; then
++        warn "traddr is mandatory for $trtype"
++        return 1;
++    fi
++    [ -z "$hosttraddr" ] && hosttraddr="none"
++    [ -z "$trsvcid" ] && trsvcid="none"
++    if [ "$trtype" = "fc" ] ; then
++        if [ -z "$hosttraddr" ] ; then
++            warn "host traddr is mandatory for fc"
++            return 1
++        fi
++    elif [ "$trtype" != "rdma" ] && [ "$trtype" != "tcp" ] ; then
++        warn "unsupported transport $trtype"
++        return 1
++    elif [ -z "$trsvcid" ] ; then
++        trsvcid=4420
++    fi
++    echo "--transport=$trtype --traddr=$traddr --host-traddr=$hosttraddr --trsvcid=$trsvcid" >> /etc/nvme/discovery.conf
++}
++
++if ! getargbool 0 rd.nonvmf ; then
++	info "rd.nonvmf=0: skipping nvmf"
++	return 0
++fi
++
++nvmf_hostnqn=$(getarg nvmf.hostnqn=)
++if [ -n "$nvmf_hostnqn" ] ; then
++    echo "$nvmf_hostnqn" > /etc/nvme/hostnqn
++fi
++nvmf_hostid=$(getarg nvmf.hostid=)
++if [ -n "$nvmf_hostid" ] ; then
++    echo "$nvmf_hostid" > /etc/nvme/hostid
++fi
++
++for d in $(getargs nvmf.discover=); do
++    parse_nvmf_discover "$d"
++done
++
++# Host NQN and host id are mandatory for NVMe-oF
++[ -f "/etc/nvme/hostnqn" ] || exit 0
++[ -f "/etc/nvme/hostid" ] || exit 0
++
++if [ -f "/etc/nvme/discovery.conf" ] ; then
++    /sbin/initqueue --onetime --unique --name nvme-discover /usr/sbin/nvme connect-all
++else
++    /sbin/initqueue --finished --unique --name nvme-fc-autoconnect echo 1 > /sys/class/fc/fc_udev_device/nvme_discovery
++fi
+

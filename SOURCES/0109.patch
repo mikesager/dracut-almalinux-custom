@@ -1,0 +1,26 @@
+From 605b45361ff9336bb9ac2526b5f7d50e7e33e99f Mon Sep 17 00:00:00 2001
+From: Jan Macku <jamacku@redhat.com>
+Date: Fri, 1 Nov 2019 14:58:56 +0100
+Subject: [PATCH] Write dns values passed by ip argument to ifcfg-* files
+
+(cherry picked from commit cb86c560b0da465e06c18df12308cb3f30fa4803)
+
+Resolves: #1767100
+---
+ modules.d/45ifcfg/write-ifcfg.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/45ifcfg/write-ifcfg.sh b/modules.d/45ifcfg/write-ifcfg.sh
+index 3bf847a5..abd111fc 100755
+--- a/modules.d/45ifcfg/write-ifcfg.sh
++++ b/modules.d/45ifcfg/write-ifcfg.sh
+@@ -270,7 +270,7 @@ for netup in /tmp/net.*.did-setup ; do
+         done
+     fi
+     i=1
+-    for ns in $(getargs nameserver); do
++    for ns in $(getargs nameserver) $dns1 $dns2; do
+         echo "DNS${i}=\"${ns}\"" >> /tmp/ifcfg/ifcfg-$netif
+         i=$((i+1))
+     done
+
