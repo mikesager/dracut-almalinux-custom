@@ -1,0 +1,32 @@
+From 090aa276b8d4b5041472743ea7472a3a1d398a92 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Tue, 10 Aug 2021 17:37:08 +0800
+Subject: [PATCH] fix(lsinitrd): TMP_DIR doesn't exist in RHEL8
+
+lsinitrd should create a seperate temp file for extracting squash image
+when squash module is enabled.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 52fcd3373f0cf715b3744f832643dc3170aefbf5)
+
+Resolves: #1991647
+---
+ lsinitrd.sh | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/lsinitrd.sh b/lsinitrd.sh
+index 04ce9e8b..85981e58 100755
+--- a/lsinitrd.sh
++++ b/lsinitrd.sh
+@@ -163,8 +163,8 @@ list_files()
+ list_squash_content()
+ {
+     SQUASH_IMG="squash-root.img"
+-    SQUASH_TMPFILE="$TMPDIR/initrd.root.sqsh"
+-
++    SQUASH_TMPFILE="$(mktemp -t --suffix=.root.sqsh lsinitrd.XXXXXX)"
++    trap "rm -f '$SQUASH_TMPFILE'" EXIT
+     $CAT "$image" 2>/dev/null | cpio --extract --verbose --quiet --to-stdout -- \
+         $SQUASH_IMG > "$SQUASH_TMPFILE" 2>/dev/null
+     if [[ -s $SQUASH_TMPFILE ]]; then
+

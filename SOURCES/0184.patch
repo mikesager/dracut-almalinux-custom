@@ -1,0 +1,76 @@
+From c6d8832f86bc2ef7fbab6f703479816dd6078902 Mon Sep 17 00:00:00 2001
+From: Pingfan Liu <piliu@redhat.com>
+Date: Fri, 9 Jul 2021 11:55:16 +0800
+Subject: [PATCH] fix(squash): keep ld cache under initdir
+
+When running kdump on PowerPC, the following bug is hit:
+[    0.391629] Freeing unused kernel memory: 5568K
+[    0.391634] This architecture does not have kernel memory protection.
+/bin/sh: error while loading shared libraries: libc.so.6: cannot open shared object file: No such file or directory
+[    0.392214] Kernel panic - not syncing: Attempted to kill init! exitcode=0x00007f00
+[    0.392214]
+[    0.392223] CPU: 6 PID: 1 Comm: init Not tainted 4.18.0-319.el8.ppc64le #1
+[    0.392228] Call Trace:
+[    0.392234] [c00000000c703c10] [c000000008ecb94c] dump_stack+0xb0/0xf4 (unreliable)
+[    0.392243] [c00000000c703c50] [c000000008167324] panic+0x148/0x3c4
+[    0.392249] [c00000000c703cf0] [c000000008170474] do_exit+0xcd4/0xd40
+[    0.392255] [c00000000c703dc0] [c0000000081705b0] do_group_exit+0x60/0x110
+[    0.392261] [c00000000c703e00] [c000000008170684] sys_exit_group+0x24/0x30
+[    0.392268] [c00000000c703e20] [c00000000800b408] system_call+0x5c/0x70
+
+This is due to the non-conventional library path:
+ldd /bin/bash
+        linux-vdso64.so.1 (0x00007fffbdc90000)
+        libtinfo.so.6 => /lib64/libtinfo.so.6 (0x00007fffbda80000)
+        libdl.so.2 => /lib64/libdl.so.2 (0x00007fffbda50000)
+        libc.so.6 => /lib64/glibc-hwcaps/power9/libc-2.28.so (0x00007fffbd830000)
+                            ^^^
+        /lib64/ld64.so.2 (0x00007fffbdcb0000)
+
+ldd finds the path by libc.so.6 -> /usr/lib64/libc.so.6 ->
+/usr/lib64/glibc-hwcaps/power9/libc-2.28.so and cache the result. So
+when dracut_install, it only saw
+'/usr/lib64/glibc-hwcaps/power9/libc-2.28.so' and blind to
+'/usr/lib64/libc.so.6'
+
+In the final kdumpimg, the symlink /usr/lib64/libc.so.6 is not created,
+hence ld.so can not find the /usr/lib64/glibc-hwcaps/power9/libc-2.28.so
+
+On the other hand, during the process of building kdumpimg, all of dynamic library info
+have been cached in ld.so.cache. Hence this bug can be simplely resolved
+by keeping ld cache under $initdir/etc.
+
+Signed-off-by: Pingfan Liu <piliu@redhat.com>
+---
+v3 -> v4:
+  use inst() instead of copy
+v2 -> v3:
+  fix format by shfmt -s -w modules.d/99squash/module-setup.sh
+v1 -> v2:
+  cp -r /etc/ld.so* instead of move, since after switch-root, initdir
+can not be seen any longer
+
+(cherry picked from commit dc21638c3f0acbb54417f3bfb6294ad5514bf2db)
+
+Resolves: #1959336
+---
+ modules.d/99squash/module-setup.sh | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index 8c9982c0..14790ce8 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -28,6 +28,11 @@ installpost() {
+         [[ "$squash_dir" == "$i"/* ]] || mv "$i" "$squash_dir"/
+     done
+ 
++    # initdir also needs ld.so.* to make ld.so work
++    inst /etc/ld.so.cache
++    inst /etc/ld.so.conf
++    inst_dir /etc/ld.so.conf.d/
++
+     # Create mount points for squash loader
+     mkdir -p "$initdir"/squash/
+     mkdir -p "$squash_dir"/squash/
+

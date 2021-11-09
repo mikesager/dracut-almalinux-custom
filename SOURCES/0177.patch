@@ -1,0 +1,31 @@
+From 878384403378526535a737acfdbf4154f7af5f50 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Mon, 1 Feb 2021 01:49:54 +0800
+Subject: [PATCH] perf: disable initrd compression when squash module is
+ enabled
+
+With squash module, the initramfs is double compressed, which slow down
+the build progress and doesn't shrink the size much.
+
+(cherry picked from commit 7c0bc0b2fd167da42035020dae49af94844f053c)
+
+Resolves: #1959336
+---
+ dracut.sh | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/dracut.sh b/dracut.sh
+index d9a66c5a..bf79568c 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1801,6 +1801,9 @@ if dracut_module_included "squash"; then
+ 
+     rm -rf "$squash_dir"
+     dinfo "*** Squashing the files inside the initramfs done ***"
++
++    # Skip initramfs compress
++    compress="cat"
+ fi
+ 
+ dinfo "*** Creating image file '$outfile' ***"
+

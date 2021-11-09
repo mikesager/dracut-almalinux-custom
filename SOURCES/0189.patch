@@ -1,0 +1,41 @@
+From 2ee3efdfa0c7f12c2f8446721937bfe713858854 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Mon, 9 Aug 2021 18:23:43 +0800
+Subject: [PATCH] fix(squash): apply FIPS and libpthread workaround
+
+There are some workarounds in dracut.sh for FIPS/libpthread covering
+some hidden lib dependency issues. These workarounds didn't take effect
+for the squash loader since the squash loader is installed
+independently. So apply these workarounds again.
+
+Also skip the lib detection code, since these extra installed libs
+are small, and squash loader contents are dropped after switch root,
+won't be an issue to be always installed. And this makes the code
+cleaner.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 5ab18dee996f0eeb2b0bfe354570e1b1af46d025)
+
+Resolves: #1990847
+---
+ modules.d/99squash/module-setup.sh | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index 7f5d365a..e73d3184 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -53,6 +53,12 @@ installpost() {
+         done
+     else
+         DRACUT_RESOLVE_DEPS=1 inst_multiple sh mount modprobe mkdir switch_root grep umount
++
++        # libpthread workaround: pthread_cancel wants to dlopen libgcc_s.so
++        inst_libdir_file -o "libgcc_s.so*"
++
++        # FIPS workaround for Fedora/RHEL: libcrypto needs libssl when FIPS is enabled
++        [[ $DRACUT_FIPS_MODE ]] && inst_libdir_file -o "libssl.so*"
+     fi
+ 
+     hostonly="" instmods "loop" "squashfs" "overlay"
+

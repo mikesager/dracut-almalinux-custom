@@ -1,0 +1,30 @@
+From 0ebfdeafe3d2b023bd52704c6f7a8a2082379da5 Mon Sep 17 00:00:00 2001
+From: Harald Hoyer <harald@redhat.com>
+Date: Fri, 12 Feb 2021 13:26:14 +0100
+Subject: [PATCH] fix: shellcheck for modules.d/99squash/module-setup.sh
+
+(cherry picked from commit 6510ab3f9d6ce555435cf57b716702b5b7663772)
+
+Resolves: #1959336
+---
+ modules.d/99squash/module-setup.sh | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index b183daf7..5b2435cc 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -32,9 +32,9 @@ installkernel() {
+ 
+ install() {
+     inst_multiple kmod modprobe mount mkdir ln echo
+-    inst $moddir/setup-squash.sh /squash/setup-squash.sh
+-    inst $moddir/clear-squash.sh /squash/clear-squash.sh
+-    inst $moddir/init.sh /squash/init.sh
++    inst "$moddir"/setup-squash.sh /squash/setup-squash.sh
++    inst "$moddir"/clear-squash.sh /squash/clear-squash.sh
++    inst "$moddir"/init.sh /squash/init.sh
+ 
+     inst "$moddir/squash-mnt-clear.service" "$systemdsystemunitdir/squash-mnt-clear.service"
+     systemctl -q --root "$initdir" add-wants initrd-switch-root.target squash-mnt-clear.service
+

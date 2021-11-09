@@ -1,0 +1,56 @@
+From a5b46f9fad27954206fe47dedcef350f77f244a0 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Mon, 8 Jun 2020 17:00:00 +0800
+Subject: [PATCH] 99squash: improve pre-requirements check
+
+Check for systemd-initrd and squashfs-tools in check() to fail early if
+it won't work.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit cfd872392c59c96665c558899880d6b2980065bb)
+
+Resolves: #1959336
+---
+ modules.d/99squash/module-setup.sh | 17 +++++++++++------
+ 1 file changed, 11 insertions(+), 6 deletions(-)
+
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index 72fa81f0..6307377c 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -1,11 +1,21 @@
+ #!/bin/bash
+ 
+ check() {
++    if ! dracut_module_included "systemd-initrd"; then
++        derror "dracut-squash only supports systemd bases initramfs"
++        return 1
++    fi
++
++    if ! type -P mksquashfs >/dev/null || ! type -P unsquashfs >/dev/null ; then
++        derror "dracut-squash module requires squashfs-tools"
++        return 1
++    fi
++
+     return 255
+ }
+ 
+ depends() {
+-    echo "bash systemd systemd-initrd"
++    echo "bash systemd-initrd"
+     return 0
+ }
+ 
+@@ -14,11 +24,6 @@ installkernel() {
+ }
+ 
+ install() {
+-    if ! type -P mksquashfs >/dev/null || ! type -P unsquashfs >/dev/null ; then
+-        derror "squash module requires squashfs-tools to be installed."
+-        return 1
+-    fi
+-
+     inst_multiple kmod modprobe mount mkdir ln echo
+     inst $moddir/setup-squash.sh /squash/setup-squash.sh
+     inst $moddir/clear-squash.sh /squash/clear-squash.sh
+

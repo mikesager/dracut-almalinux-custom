@@ -1,0 +1,33 @@
+From 309c4b0a1756399d9bfd5576d904be63c0a9a8c8 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Tue, 25 Dec 2018 17:53:24 +0800
+Subject: [PATCH] 99squash: fail early if can't install require modules in
+ initramfs
+
+insmods will consider all arguments as optional modules by default, but
+for squash module, all listed modules are required, if any of them is
+missing the initramfs won't boot. So pass the '-c' argument to let instmos
+know all those modules are mandatory, it will fail and give an error if
+it failed to install any of those modules.
+
+(cherry picked from commit 90ac0a2d772ec0d4f90ea16fc5a31be10bdf205e)
+
+Resolves: #1959336
+---
+ modules.d/99squash/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index 7aa0b447..72fa81f0 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -10,7 +10,7 @@ depends() {
+ }
+ 
+ installkernel() {
+-    hostonly="" instmods squashfs loop overlay
++    hostonly="" instmods -c squashfs loop overlay
+ }
+ 
+ install() {
+

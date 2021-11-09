@@ -1,0 +1,154 @@
+From 3b3dea36edc66300b84bb3887f8a5be971be959a Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Mon, 15 Feb 2021 22:22:08 +0800
+Subject: [PATCH] refactor(squash): move the post install scripts into the
+ module-setup.sh
+
+No function change, just move the post install code to 99squash to clean
+up dracut.sh.
+
+(cherry picked from commit 95ea16aa606912b7cc8f9942481c8a889b640c15)
+
+Cherry-picked from: 95ea16aa
+Resolves: #1959336
+---
+ dracut.sh                          | 44 ++-------------------------------
+ modules.d/99squash/init.sh         |  2 +-
+ modules.d/99squash/module-setup.sh | 50 +++++++++++++++++++++++++++++++++++---
+ 3 files changed, 50 insertions(+), 46 deletions(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index 2090d89f..669bc6ce 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1735,51 +1735,11 @@ if [[ $hostonly_cmdline == "yes" ]] ; then
+ fi
+ 
+ if dracut_module_included "squash"; then
+-    dinfo "*** Install squash loader ***"
+     readonly squash_dir="$initdir/squash/root"
+     readonly squash_img="$initdir/squash/root.img"
+-    readonly squash_candidate=( "usr" "etc" )
+-
+-    mkdir -m 0755 -p $squash_dir
+-    for folder in "${squash_candidate[@]}"; do
+-        mv $initdir/$folder $squash_dir/$folder
+-    done
+-
+-    # Move some files out side of the squash image, including:
+-    # - Files required to boot and mount the squashfs image
+-    # - Files need to be accessible without mounting the squash image
+-    # - Initramfs marker
+-    for file in \
+-        $squash_dir/usr/lib/modules/*/modules.* \
+-        $squash_dir/usr/lib/dracut/* \
+-        $squash_dir/etc/initrd-release
+-    do
+-        [[ -d $file ]] && continue
+-        DRACUT_RESOLVE_DEPS=1 dracutsysrootdir=$squash_dir inst ${file#$squash_dir}
+-        rm $file
+-    done
+ 
+-    mv $initdir/init $initdir/init.stock
+-    ln -s squash/init.sh $initdir/init
+-
+-    # Reinstall required files for the squash image setup script.
+-    # We have moved them inside the squashed image, but they need to be
+-    # accessible before mounting the image.
+-    inst_multiple "echo" "sh" "mount" "modprobe" "mkdir"
+-    hostonly="" instmods "loop" "squashfs" "overlay"
+-    # Only keep systemctl outsite if we need switch root
+-    if [[ ! -f "$initdir/lib/dracut/no-switch-root" ]]; then
+-      inst "systemctl"
+-    fi
+-
+-    # Remove duplicated files
+-    for folder in "${squash_candidate[@]}"; do
+-        for file in $(find $initdir/$folder/ -not -type d); do
+-            if [[ -e $squash_dir${file#$initdir} ]]; then
+-                mv $squash_dir${file#$initdir} $file
+-            fi
+-        done
+-    done
++    dinfo "*** Install squash loader ***"
++    DRACUT_SQUASH_POST_INST=1 module_install "squash"
+ fi
+ 
+ if [[ $kernel_only != yes ]]; then
+diff --git a/modules.d/99squash/init.sh b/modules.d/99squash/init.sh
+index bca49db5..d8b2cbba 100755
+--- a/modules.d/99squash/init.sh
++++ b/modules.d/99squash/init.sh
+@@ -1,7 +1,7 @@
+ #!/bin/sh
+ /squash/setup-squash.sh
+ 
+-exec /init.stock
++exec /init.orig
+ 
+ echo "Something went wrong when trying to start original init executable!"
+ exit 1
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index ba9d52ff..0acf7c3a 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -30,11 +30,55 @@ installkernel() {
+     hostonly="" instmods -c squashfs loop overlay
+ }
+ 
+-install() {
+-    inst_multiple kmod modprobe mount mkdir ln echo
++installpost() {
++    local squash_candidate=( "usr" "etc" )
++
++    # shellcheck disable=SC2174
++    mkdir -m 0755 -p "$squash_dir"
++    for folder in "${squash_candidate[@]}"; do
++        mv "$initdir/$folder" "$squash_dir/$folder"
++    done
++
++    # Move some files out side of the squash image, including:
++    # - Files required to boot and mount the squashfs image
++    # - Files need to be accessible without mounting the squash image
++    # - Initramfs marker
++    for file in \
++        "$squash_dir"/usr/lib/modules/*/modules.* \
++        "$squash_dir"/usr/lib/dracut/* \
++        "$squash_dir"/etc/initrd-release
++    do
++        [[ -f $file ]] || continue
++        DRACUT_RESOLVE_DEPS=1 dracutsysrootdir="$squash_dir" inst "${file#$squash_dir}"
++        rm "$file"
++    done
++
++    # Install required files for the squash image setup script.
++    hostonly="" instmods "loop" "squashfs" "overlay"
++    inst_multiple modprobe mount mkdir ln echo
+     inst "$moddir"/setup-squash.sh /squash/setup-squash.sh
+     inst "$moddir"/clear-squash.sh /squash/clear-squash.sh
+-    inst "$moddir"/init.sh /squash/init.sh
++
++    mv "$initdir"/init "$initdir"/init.orig
++    inst "$moddir"/init.sh "$initdir"/init
++
++    # Keep systemctl outsite if we need switch root
++    if [[ ! -f "$initdir/lib/dracut/no-switch-root" ]]; then
++      inst "systemctl"
++    fi
++
++    # Remove duplicated files
++    for folder in "${squash_candidate[@]}"; do
++        find "$initdir/$folder/" -not -type d \
++            -exec bash -c 'mv -f "$squash_dir${1#$initdir}" "$1"' -- "{}" \;
++    done
++}
++
++install() {
++    if [[ $DRACUT_SQUASH_POST_INST ]]; then
++        installpost
++        return
++    fi
+ 
+     inst "$moddir/squash-mnt-clear.service" "$systemdsystemunitdir/squash-mnt-clear.service"
+     systemctl -q --root "$initdir" add-wants initrd-switch-root.target squash-mnt-clear.service
+

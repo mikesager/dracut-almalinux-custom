@@ -1,0 +1,36 @@
+From 776ee36e59f6f2cb97f6cd2bca4c989b89a727d2 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Mon, 8 Jun 2020 15:31:56 +0800
+Subject: [PATCH] 99squash: Don't hardcode the squash sub directories
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 3a2beb037c822e1567f86b63ac24194bffeea991)
+
+Resolves: #1959336
+---
+ modules.d/99squash/setup-squash.sh | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/modules.d/99squash/setup-squash.sh b/modules.d/99squash/setup-squash.sh
+index d2740e7c..d0000b6f 100755
+--- a/modules.d/99squash/setup-squash.sh
++++ b/modules.d/99squash/setup-squash.sh
+@@ -4,7 +4,6 @@ PATH=/bin:/sbin
+ SQUASH_IMG=/squash/root.img
+ SQUASH_MNT=/squash/root
+ SQUASH_MNT_REC=/squash/mounts
+-SQUASHED_MNT="usr etc"
+ 
+ echo $SQUASH_MNT > $SQUASH_MNT_REC
+ 
+@@ -45,7 +44,8 @@ if [ $? != 0 ]; then
+     echo "Unable to mount squashed initramfs image"
+ fi
+ 
+-for file in $SQUASHED_MNT; do
++for file in $SQUASH_MNT/*; do
++	file=${file#$SQUASH_MNT/}
+ 	lowerdir=$SQUASH_MNT/$file
+ 	workdir=/squash/overlay-work/$file
+ 	upperdir=/$file
+

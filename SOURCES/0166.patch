@@ -1,0 +1,28 @@
+From 58e04fa657c09322feaa195d465514a850acfcb7 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Fri, 4 Dec 2020 15:37:27 +0800
+Subject: [PATCH] fix(squash): this module shouldn't depend on bash
+
+Any other shell should just work.
+
+(cherry picked from commit c552c99ef8e5251e35242e0a3c09eafcd917b31a)
+
+Resolves: #1959336
+---
+ modules.d/99squash/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index 5b2435cc..ba9d52ff 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -22,7 +22,7 @@ check() {
+ }
+ 
+ depends() {
+-    echo "bash systemd-initrd"
++    echo "systemd-initrd"
+     return 0
+ }
+ 
+

@@ -5,7 +5,7 @@
 # strip the automatically generated dep here and instead co-own the
 # directory.
 %global __requires_exclude pkg-config
-%define dist_free_release 135.git20210121
+%define dist_free_release 191.git20210920
 
 Name: dracut
 Version: 049
@@ -162,6 +162,62 @@ Patch131: 0131.patch
 Patch132: 0132.patch
 Patch133: 0133.patch
 Patch134: 0134.patch
+Patch135: 0135.patch
+Patch136: 0136.patch
+Patch137: 0137.patch
+Patch138: 0138.patch
+Patch139: 0139.patch
+Patch140: 0140.patch
+Patch141: 0141.patch
+Patch142: 0142.patch
+Patch143: 0143.patch
+Patch144: 0144.patch
+Patch145: 0145.patch
+Patch146: 0146.patch
+Patch147: 0147.patch
+Patch148: 0148.patch
+Patch149: 0149.patch
+Patch150: 0150.patch
+Patch151: 0151.patch
+Patch152: 0152.patch
+Patch153: 0153.patch
+Patch154: 0154.patch
+Patch155: 0155.patch
+Patch156: 0156.patch
+Patch157: 0157.patch
+Patch158: 0158.patch
+Patch159: 0159.patch
+Patch160: 0160.patch
+Patch161: 0161.patch
+Patch162: 0162.patch
+Patch163: 0163.patch
+Patch164: 0164.patch
+Patch165: 0165.patch
+Patch166: 0166.patch
+Patch167: 0167.patch
+Patch168: 0168.patch
+Patch169: 0169.patch
+Patch170: 0170.patch
+Patch171: 0171.patch
+Patch172: 0172.patch
+Patch173: 0173.patch
+Patch174: 0174.patch
+Patch175: 0175.patch
+Patch176: 0176.patch
+Patch177: 0177.patch
+Patch178: 0178.patch
+Patch179: 0179.patch
+Patch180: 0180.patch
+Patch181: 0181.patch
+Patch182: 0182.patch
+Patch183: 0183.patch
+Patch184: 0184.patch
+Patch185: 0185.patch
+Patch186: 0186.patch
+Patch187: 0187.patch
+Patch188: 0188.patch
+Patch189: 0189.patch
+Patch190: 0190.patch
 
 Source1: https://www.gnu.org/licenses/lgpl-2.1.txt
 
@@ -412,14 +468,8 @@ rm -f -- $RPM_BUILD_ROOT%{_bindir}/mkinitrd
 rm -f -- $RPM_BUILD_ROOT%{_bindir}/lsinitrd
 %endif
 
-%if 0%{?fedora} || 0%{?rhel}
 echo 'hostonly="no"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/02-generic-image.conf
 echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/02-rescue.conf
-
-# FIXME: remove after F30
-mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/kernel/postinst.d
-install -m 0755 51-dracut-rescue-postinst.sh $RPM_BUILD_ROOT%{_sysconfdir}/kernel/postinst.d/51-dracut-rescue-postinst.sh
-%endif
 
 %files
 %if %{with doc}
@@ -500,7 +550,6 @@ install -m 0755 51-dracut-rescue-postinst.sh $RPM_BUILD_ROOT%{_sysconfdir}/kerne
 %{dracutlibdir}/modules.d/90lvm
 %{dracutlibdir}/modules.d/90mdraid
 %{dracutlibdir}/modules.d/90multipath
-%{dracutlibdir}/modules.d/90stratis
 %{dracutlibdir}/modules.d/90qemu
 %{dracutlibdir}/modules.d/91crypt-gpg
 %{dracutlibdir}/modules.d/91crypt-loop
@@ -613,11 +662,7 @@ install -m 0755 51-dracut-rescue-postinst.sh $RPM_BUILD_ROOT%{_sysconfdir}/kerne
 
 %files config-rescue
 %{dracutlibdir}/dracut.conf.d/02-rescue.conf
-%if 0%{?fedora} || 0%{?rhel}
 %{_prefix}/lib/kernel/install.d/51-dracut-rescue.install
-# FIXME: remove after F30
-%{_sysconfdir}/kernel/postinst.d/51-dracut-rescue-postinst.sh
-%endif
 
 %triggerin network -- dracut-network < 049-83.git20200525
 echo '# Since rhel-8.3 dracut moved to use NetworkManager
@@ -625,6 +670,72 @@ echo '# Since rhel-8.3 dracut moved to use NetworkManager
 add_dracutmodules+=" network-legacy "' > /etc/dracut.conf.d/50-network-legacy.conf
 
 %changelog
+* Mon Sep 20 2021 Lukas Nykryn <lnykryn@redhat.com> - 049-191.git20210920
+- fix(install): extend hwcaps library handling to libraries
+
+* Wed Aug 11 2021 Lukas Nykryn <lnykryn@redhat.com> - 049-190.git20210811
+- fix(lsinitrd): TMP_DIR doesn't exist in RHEL8
+- fix(squash): apply FIPS and libpthread workaround
+
+* Mon Aug 02 2021 Lukas Nykryn <lnykryn@redhat.com> - 049-188.git20210802
+- dracut-functions: fix botched backport
+- squash: unsquash the root image instead of mounting it on
+- 99squash: fail early if can't install require modules in
+- 99squash: Don't hardcode the squash sub directories
+- 99squash: improve pre-requirements check
+- Fixed some SUSE specific typos and outputs
+- 99squash: simplify the code
+- 99squash: Check require module earlier, and properly
+- fix(99squash): use kernel config instead of modprobe to check
+- kill bogus comment
+- busybox: simplify listing of supported utilities
+- fix: use find_binary
+- fix: shellcheck for modules.d/99squash/setup-squash.sh
+- fix: shellcheck for modules.d/99squash/clear-squash.sh
+- fix: shellcheck for modules.d/99squash/module-setup.sh
+- fix(squash): this module shouldn't depend on bash
+- refactor(squash): move the post install scripts into the
+- fix: revise squash module checks
+- fix(squash): post install should be the last step before
+- refactor(squash): move all setup code to init-squash.sh
+- feat(squash): install and depmod modules seperately
+- refactor(squash): don't record mount points in text file
+- lsinitrd: list squash content as well
+- refactor(squash): structure in a cleaner way
+- feat(squash): use busybox for early setup if available
+- feat: squash module follow --compress option
+- perf: disable initrd compression when squash module is
+- fix(squash): shellcheck for modules.d/99squash
+- fix(squash): don't mount the mount points if already mounted
+- feat(squash): install umount util
+- fix(squash): create relative symlinks
+- fix(dracut.sh): handle '-i' option to include files beginning
+- fix(dracut.sh): handle symlinks appropriately while using
+- fix(squash): keep ld cache under initdir
+- dracut-functions: backport block_is_* functions
+- fix(squash): fixes related to squash module rebase
+- fix(squash): remove tailing '/' when installing ld.so.conf.d
+
+* Mon Jul 19 2021 Lukas Nykryn <lnykryn@redhat.com> - 049-151.git20210719
+- Drop 51-dracut-rescue-postinst.sh entirely
+- fix(fips): add dh and ecdh ciphers
+- 35network-legacy: discard pointless RTNETLINK message
+- 95fcoe: don't install if there is no FCoE hostonly devices
+- 95nfs: set correct ownership and permissions for statd 
+- fix(dracut.sh): harden dracut against GZIP environment
+- fix(multipath): stop multipath before udev db cleanup
+- fix(dracut-functions): implement a cache for get_maj_min
+- fix(dracut-functions): get_maj_min without
+- fix(fcoe): rd.nofcoe=0 should disable fcoe
+- fix(fcoe): rename rd.nofcoe to rd.fcoe
+- fix(mdraid): remove offroot
+- fix(mdraid): add grow continue service
+- net-lib.sh: support infiniband network mac addresses
+- 95nvmf: add nvmf-autoconnect script
+
+* Mon Apr 26 2021 Lukas Nykryn <lnykryn@redhat.com> - 049-136.git20210426
+- Remove stratis module
+
 * Thu Jan 21 2021 Lukas Nykryn <lnykryn@redhat.com> - 049-135.git20210121
 - 95fcoe: default rd.nofcoe to false
 

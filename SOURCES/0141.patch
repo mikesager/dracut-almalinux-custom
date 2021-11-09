@@ -1,0 +1,52 @@
+From eaba11eff1156f7a0324a1aa46e43396c7ec3628 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Renaud=20M=C3=A9trich?= <rmetrich@redhat.com>
+Date: Mon, 1 Mar 2021 17:43:10 +0100
+Subject: [PATCH] fix(dracut.sh): harden dracut against GZIP environment
+ variable
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+When a GZIP environment variable is set, this leads to various breakage:
+
+In case 'pigz' is installed and GZIP is defined as a path, e.g.
+/usr/local/bin/gzip, then dracut will fail with the following message:
+
+   "
+   pigz: abort: cannot provide files in GZIP environment variable
+   "
+
+In case 'pigz' isn't installed and regular 'gzip' is used and GZIP is
+defined as a path, e.g. /usr/local/bin/gzip, then the path will be
+zipped and dracut will fail for no obvious reason.  Trying again, dracut
+will then fail with following message:
+
+   "
+   gzip: /usr/local/bin/gzip.gz already exists;	not overwritten
+   "
+
+In any case, GZIP environment should be unset to avoid breakage or
+unwanted behaviour. This variable is anyway obsolescent, from gzip(1)
+manpage.
+
+Signed-off-by: Renaud Métrich <rmetrich@redhat.com>
+(cherry picked from commit d8e47e201af4646e2a82e11220ea9c993bd2ed48)
+
+Resolves: #1933773
+---
+ dracut.sh | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/dracut.sh b/dracut.sh
+index 01abe7a4..4340e646 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -24,6 +24,7 @@
+ # store for logging
+ 
+ unset BASH_ENV
++unset GZIP
+ 
+ # Verify bash version, current minimum is 4
+ if (( BASH_VERSINFO[0] < 4 )); then
+

@@ -1,0 +1,31 @@
+From 094514ae8383e03d95869a98ba8858ad74da1f0d Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Fri, 30 Jul 2021 21:54:11 +0800
+Subject: [PATCH] fix(squash): remove tailing '/' when installing ld.so.conf.d
+
+This tailing '/' will result in following error:
+
+dracut-install: ERROR: installing '/etc/ld.so.conf.d/'
+dracut: FAILED: /usr/lib/dracut/dracut-install -D /var/tmp/dracut.kEFQLs/initramfs -d /etc/ld.so.conf.d/
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+
+Related:#1959336
+---
+ modules.d/99squash/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index 11964b97..7f5d365a 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -31,7 +31,7 @@ installpost() {
+     # initdir also needs ld.so.* to make ld.so work
+     inst /etc/ld.so.cache
+     inst /etc/ld.so.conf
+-    inst_dir /etc/ld.so.conf.d/
++    inst_dir /etc/ld.so.conf.d
+ 
+     # Create mount points for squash loader
+     mkdir -p "$initdir"/squash/
+

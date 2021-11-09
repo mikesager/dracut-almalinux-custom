@@ -1,0 +1,52 @@
+From ba8f0e0502d3cda2f4222745eebed37f45a4c5a1 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Thu, 11 Feb 2021 00:39:17 +0800
+Subject: [PATCH] fix(squash): post install should be the last step before
+ stripping
+
+Ensure dracut squash module doesn't effect other steps, and stripping
+can cover the new binaries installed by it.
+
+(cherry picked from commit 8c8aecdc63c9389038e78ee712d4809e49add5e1)
+
+Cherry-picked from: 8c8aecdc
+Resolves: #1959336
+---
+ dracut.sh | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index 669bc6ce..1168fc16 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1734,14 +1734,6 @@ if [[ $hostonly_cmdline == "yes" ]] ; then
+     fi
+ fi
+ 
+-if dracut_module_included "squash"; then
+-    readonly squash_dir="$initdir/squash/root"
+-    readonly squash_img="$initdir/squash/root.img"
+-
+-    dinfo "*** Install squash loader ***"
+-    DRACUT_SQUASH_POST_INST=1 module_install "squash"
+-fi
+-
+ if [[ $kernel_only != yes ]]; then
+     # libpthread workaround: pthread_cancel wants to dlopen libgcc_s.so
+     for _dir in $libdirs; do
+@@ -1764,6 +1756,14 @@ if [[ $kernel_only != yes ]]; then
+     fi
+ fi
+ 
++if dracut_module_included "squash"; then
++    readonly squash_dir="$initdir/squash/root"
++    readonly squash_img="$initdir/squash/root.img"
++
++    dinfo "*** Install squash loader ***"
++    DRACUT_SQUASH_POST_INST=1 module_install "squash"
++fi
++
+ if [[ $do_strip = yes ]] && ! [[ $DRACUT_FIPS_MODE ]]; then
+     dinfo "*** Stripping files ***"
+     find "$initdir" -type f \
+

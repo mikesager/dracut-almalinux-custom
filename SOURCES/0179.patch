@@ -1,0 +1,64 @@
+From 3f7410e7f3c08866c84e01ccfb423d7cff4eb5a3 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Wed, 7 Apr 2021 02:11:41 +0800
+Subject: [PATCH] fix(squash): don't mount the mount points if already mounted
+
+It is possible that user setup some early mount in the rootfs even
+earlier, so just be more robust and cover that case too.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 636d6df3134dde1dac72241937724bc59deb9303)
+
+Resolves: #1959336
+---
+ modules.d/99squash/init-squash.sh  | 17 +++++++++++------
+ modules.d/99squash/module-setup.sh |  4 ++--
+ 2 files changed, 13 insertions(+), 8 deletions(-)
+
+diff --git a/modules.d/99squash/init-squash.sh b/modules.d/99squash/init-squash.sh
+index 3de6f819..59769f62 100755
+--- a/modules.d/99squash/init-squash.sh
++++ b/modules.d/99squash/init-squash.sh
+@@ -1,12 +1,17 @@
+ #!/bin/sh
+ PATH=/bin:/sbin
+ 
+-# Basic mounts for mounting a squash image
+-mkdir /proc /sys /dev /run
+-mount -t proc -o nosuid,noexec,nodev proc /proc
+-mount -t sysfs -o nosuid,noexec,nodev sysfs /sys
+-mount -t devtmpfs -o mode=755,noexec,nosuid,strictatime devtmpfs /dev
+-mount -t tmpfs -o mode=755,nodev,nosuid,strictatime tmpfs /run
++[ -e /proc/self/mounts ] \
++    || (mkdir -p /proc && mount -t proc -o nosuid,noexec,nodev proc /proc)
++
++grep -q '^sysfs /sys sysfs' /proc/self/mounts \
++    || (mkdir -p /sys && mount -t sysfs -o nosuid,noexec,nodev sysfs /sys)
++
++grep -q '^devtmpfs /dev devtmpfs' /proc/self/mounts \
++    || (mkdir -p /dev && mount -t devtmpfs -o mode=755,noexec,nosuid,strictatime devtmpfs /dev)
++
++grep -q '^tmpfs /run tmpfs' /proc/self/mounts \
++    || (mkdir -p /run && mount -t tmpfs -o mode=755,noexec,nosuid,strictatime tmpfs /run)
+ 
+ # Load required modules
+ modprobe loop
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index 72cc83ad..81a5b3f7 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -42,11 +42,11 @@ installpost() {
+     # Install required modules and binaries for the squash image init script.
+     if [[ $_busybox ]]; then
+         inst "$_busybox" /usr/bin/busybox
+-        for _i in sh echo mount modprobe mkdir switch_root; do
++        for _i in sh echo mount modprobe mkdir switch_root grep; do
+             ln_r /usr/bin/busybox /usr/bin/$_i
+         done
+     else
+-        DRACUT_RESOLVE_DEPS=1 inst_multiple sh mount modprobe mkdir switch_root
++        DRACUT_RESOLVE_DEPS=1 inst_multiple sh mount modprobe mkdir switch_root grep
+     fi
+ 
+     hostonly="" instmods "loop" "squashfs" "overlay"
+

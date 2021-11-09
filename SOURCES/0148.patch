@@ -1,0 +1,35 @@
+From 5818f56e99aecca0664f779c29c569f116f907e4 Mon Sep 17 00:00:00 2001
+From: Mariusz Tkaczyk <mariusz.tkaczyk@linux.intel.com>
+Date: Thu, 26 Nov 2020 12:51:47 +0100
+Subject: [PATCH] fix(mdraid): add grow continue service
+
+During raid assembly mdadm will call mdadm-grow-continue.service if
+reshape is in progress.
+If service doesn't exist then it is done via fork and systemd will kill
+it unconditionally after processing all events.
+
+Add proper service to allow systemd to manage reshape correctly.
+
+Signed-off-by: Mariusz Tkaczyk <mariusz.tkaczyk@linux.intel.com>
+(cherry picked from commit 29e269a5225ad8f658a8d7ef64d77d0c02f8e31d)
+
+Resolves: #1958899
+---
+ modules.d/90mdraid/module-setup.sh | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/modules.d/90mdraid/module-setup.sh b/modules.d/90mdraid/module-setup.sh
+index 98a4ef5d..2e043041 100755
+--- a/modules.d/90mdraid/module-setup.sh
++++ b/modules.d/90mdraid/module-setup.sh
+@@ -136,6 +136,9 @@ install() {
+         if [ -e $systemdsystemunitdir/mdadm-last-resort@.timer ]; then
+             inst_simple $systemdsystemunitdir/mdadm-last-resort@.timer
+         fi
++        if [ -e $dracutsysrootdir$systemdsystemunitdir/mdadm-grow-continue@.service ]; then
++            inst_simple $systemdsystemunitdir/mdadm-grow-continue@.service
++        fi
+     fi
+     inst_hook pre-shutdown 30 "$moddir/mdmon-pre-shutdown.sh"
+     dracut_need_initqueue
+

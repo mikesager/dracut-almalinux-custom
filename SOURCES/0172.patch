@@ -1,0 +1,67 @@
+From 122da496446405e60a6eb5b037af263b5fd14378 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Mon, 15 Feb 2021 23:05:08 +0800
+Subject: [PATCH] refactor(squash): don't record mount points in text file
+
+The squasn mount points are recorded in text file so later clean up
+script can umount them, this is not needed, the mount points are fixed
+so just detect the umount by hardcoded pattern.
+
+(cherry picked from commit bdd194bb8c0427921b87b4dce16c05e18e0c2fb0)
+
+Resolves: #1959336
+---
+ modules.d/99squash/clear-squash.sh | 10 +++++-----
+ modules.d/99squash/init-squash.sh  |  8 --------
+ 2 files changed, 5 insertions(+), 13 deletions(-)
+
+diff --git a/modules.d/99squash/clear-squash.sh b/modules.d/99squash/clear-squash.sh
+index 1d626f98..4f357817 100755
+--- a/modules.d/99squash/clear-squash.sh
++++ b/modules.d/99squash/clear-squash.sh
+@@ -1,6 +1,6 @@
+ #!/bin/bash
+-SQUASH_MNT_REC=/squash/mounts
+-
+-mapfile -t SQUASH_MNTS < $SQUASH_MNT_REC
+-
+-umount --lazy -- "${SQUASH_MNTS[@]}"
++mnt="/squash/root"
++for dir in jsquash/root/*; do
++	mnt="$mnt ${dir#$SQUASH_MNT}"
++done
++umount --lazy -- $mnt
+diff --git a/modules.d/99squash/init-squash.sh b/modules.d/99squash/init-squash.sh
+index ecb6cc58..fee0105e 100755
+--- a/modules.d/99squash/init-squash.sh
++++ b/modules.d/99squash/init-squash.sh
+@@ -3,9 +3,6 @@ PATH=/bin:/sbin
+ 
+ SQUASH_IMG=/squash/root.img
+ SQUASH_MNT=/squash/root
+-SQUASH_MNT_REC=/squash/mounts
+-
+-echo $SQUASH_MNT > $SQUASH_MNT_REC
+ 
+ # Following mount points are neccessary for mounting a squash image
+ 
+@@ -34,9 +31,6 @@ if [ $? != 0 ]; then
+     echo "Unable to setup overlay module"
+ fi
+ 
+-# These modules are no longer needed, delete to save memory
+-rm -rf /usr/lib/modules/
+-
+ [ ! -d "$SQUASH_MNT" ] && \
+ 	mkdir -m 0755 -p $SQUASH_MNT
+ 
+@@ -59,8 +53,6 @@ for file in $SQUASH_MNT/*; do
+ 
+ 	mount -t overlay overlay -o\
+ 		lowerdir=$lowerdir,upperdir=$upperdir,workdir=$workdir $mntdir
+-
+-	echo $mntdir >> $SQUASH_MNT_REC
+ done
+ 
+ exec /init.orig
+

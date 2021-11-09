@@ -1,0 +1,30 @@
+From 1fd29d8550d7d1573b2d2a60b41d6a5f3ca5003f Mon Sep 17 00:00:00 2001
+From: Harald Hoyer <harald@redhat.com>
+Date: Fri, 12 Feb 2021 13:26:14 +0100
+Subject: [PATCH] fix: shellcheck for modules.d/99squash/clear-squash.sh
+
+(cherry picked from commit 73f5cc7c3754f9561abe948b4b080a84b34c7d1a)
+
+Resolves: #1959336
+---
+ modules.d/99squash/clear-squash.sh | 9 +++------
+ 1 file changed, 3 insertions(+), 6 deletions(-)
+
+diff --git a/modules.d/99squash/clear-squash.sh b/modules.d/99squash/clear-squash.sh
+index 34cb4cf5..1d626f98 100755
+--- a/modules.d/99squash/clear-squash.sh
++++ b/modules.d/99squash/clear-squash.sh
+@@ -1,9 +1,6 @@
+-#!/bin/sh
++#!/bin/bash
+ SQUASH_MNT_REC=/squash/mounts
+-SQUASH_MNTS=( )
+ 
+-while read mnt; do
+-    SQUASH_MNTS+=( "$mnt" )
+-done <<< "$(cat $SQUASH_MNT_REC)"
++mapfile -t SQUASH_MNTS < $SQUASH_MNT_REC
+ 
+-umount --lazy -- ${SQUASH_MNTS[@]}
++umount --lazy -- "${SQUASH_MNTS[@]}"
+

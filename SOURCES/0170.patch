@@ -1,0 +1,64 @@
+From 8c31ef8476d302d11bbad81644e82872bd1e86f3 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Mon, 15 Feb 2021 22:52:47 +0800
+Subject: [PATCH] refactor(squash): move all setup code to init-squash.sh
+
+Seperate of init.sh and setup-squash.sh is pointless, merge them into one.
+
+(cherry picked from commit f9f4264d038816990aa0a830b31e31d2e8b84cad)
+
+Resolves: #1959336
+---
+ modules.d/99squash/{setup-squash.sh => init-squash.sh} | 5 +++++
+ modules.d/99squash/init.sh                             | 7 -------
+ modules.d/99squash/module-setup.sh                     | 5 ++---
+ 3 files changed, 7 insertions(+), 10 deletions(-)
+
+diff --git a/modules.d/99squash/setup-squash.sh b/modules.d/99squash/init-squash.sh
+similarity index 93%
+rename from modules.d/99squash/setup-squash.sh
+rename to modules.d/99squash/init-squash.sh
+index 253e6101..449585f0 100755
+--- a/modules.d/99squash/setup-squash.sh
++++ b/modules.d/99squash/init-squash.sh
+@@ -59,3 +59,8 @@ for file in $SQUASH_MNT/*; do
+ 
+ 	echo $mntdir >> $SQUASH_MNT_REC
+ done
++
++exec /init.orig
++
++echo "Something went wrong when trying to exec original init!"
++exit 1
+diff --git a/modules.d/99squash/init.sh b/modules.d/99squash/init.sh
+deleted file mode 100755
+index d8b2cbba..00000000
+--- a/modules.d/99squash/init.sh
++++ /dev/null
+@@ -1,7 +0,0 @@
+-#!/bin/sh
+-/squash/setup-squash.sh
+-
+-exec /init.orig
+-
+-echo "Something went wrong when trying to start original init executable!"
+-exit 1
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index dd4f3ecf..c0eb4acd 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -48,11 +48,10 @@ installpost() {
+     # Install required files for the squash image setup script.
+     hostonly="" instmods "loop" "squashfs" "overlay"
+     inst_multiple modprobe mount mkdir ln echo
+-    inst "$moddir"/setup-squash.sh /squash/setup-squash.sh
+-    inst "$moddir"/clear-squash.sh /squash/clear-squash.sh
+ 
+     mv "$initdir"/init "$initdir"/init.orig
+-    inst "$moddir"/init.sh "$initdir"/init
++    inst "$moddir"/init-squash.sh /init
++    inst "$moddir"/clear-squash.sh /squash/clear-squash.sh
+ 
+     # Keep systemctl outsite if we need switch root
+     if [[ ! -f "$initdir/lib/dracut/no-switch-root" ]]; then
+

@@ -1,0 +1,286 @@
+From 5e4bc6e2d6b6829c45f4e25cce4d81661b798587 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Thu, 29 Jul 2021 15:16:39 +0200
+Subject: [PATCH] refactor(squash): structure in a cleaner way
+
+Simplify the squash mount layout. Instead of overlay on each top
+directory (/etc, /usr), just mount and switch_root into the squash
+image, with a overlay on top of it.
+
+Also install the binaries and setup scripts separately, so the squash
+setup code and the squash image content is independent of each other,
+all squash setup script and binaries can be deleted safely upon
+switch_root.
+
+With this change, previous squash clean up service and other tricky
+implementations are all gone.
+
+This commit depends on systemd commits from:
+https://github.com/systemd/systemd/pull/18124
+
+Previouly systemd doesn't recognize non-ramfs initramfs, now this is
+doable with SYSTEMD_IN_INITRD=lenient
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 8f7c332e488f88e5845a3c7954af7934c2f1e37b)
+
+Cherry-picked from: 8f7c332e
+Resolves: #1959336
+---
+ dracut-initramfs-restore.sh                 |  4 +-
+ dracut.sh                                   |  4 +-
+ lsinitrd.sh                                 |  6 +--
+ modules.d/99squash/clear-squash.sh          |  6 ---
+ modules.d/99squash/init-squash.sh           | 70 ++++++++---------------------
+ modules.d/99squash/module-setup.sh          | 56 ++++++++---------------
+ modules.d/99squash/squash-mnt-clear.service | 17 -------
+ 7 files changed, 44 insertions(+), 119 deletions(-)
+
+diff --git a/dracut-initramfs-restore.sh b/dracut-initramfs-restore.sh
+index 67fc88fa..74a952c4 100644
+--- a/dracut-initramfs-restore.sh
++++ b/dracut-initramfs-restore.sh
+@@ -41,9 +41,9 @@ else
+ fi
+ 
+ if [[ -d squash ]]; then
+-    unsquashfs -no-xattrs -f -d . squash/root.img >/dev/null
++    unsquashfs -no-xattrs -f -d . squash-root.img >/dev/null
+     if [ $? -ne 0 ]; then
+-        echo "Squash module is enabled for this initramfs but failed to unpack squash/root.img" >&2
++        echo "Squash module is enabled for this initramfs but failed to unpack squash-root.img" >&2
+         rm -f -- /run/initramfs/shutdown
+         exit 1
+     fi
+diff --git a/dracut.sh b/dracut.sh
+index 1168fc16..b403f401 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1758,8 +1758,8 @@ fi
+ 
+ if dracut_module_included "squash"; then
+     readonly squash_dir="$initdir/squash/root"
+-    readonly squash_img="$initdir/squash/root.img"
+-
++    readonly squash_img="$initdir/squash-root.img"
++    mkdir -p "$squash_dir"
+     dinfo "*** Install squash loader ***"
+     DRACUT_SQUASH_POST_INST=1 module_install "squash"
+ fi
+diff --git a/lsinitrd.sh b/lsinitrd.sh
+index 0b42b9a4..04ce9e8b 100755
+--- a/lsinitrd.sh
++++ b/lsinitrd.sh
+@@ -162,9 +162,9 @@ list_files()
+ 
+ list_squash_content()
+ {
+-    SQUASH_IMG="squash/root.img"
+-    SQUASH_TMPFILE="$(mktemp -t --suffix=.root.sqsh lsinitrd.XXXXXX)"
+-    trap "rm -f '$SQUASH_TMPFILE'" EXIT
++    SQUASH_IMG="squash-root.img"
++    SQUASH_TMPFILE="$TMPDIR/initrd.root.sqsh"
++
+     $CAT "$image" 2>/dev/null | cpio --extract --verbose --quiet --to-stdout -- \
+         $SQUASH_IMG > "$SQUASH_TMPFILE" 2>/dev/null
+     if [[ -s $SQUASH_TMPFILE ]]; then
+diff --git a/modules.d/99squash/clear-squash.sh b/modules.d/99squash/clear-squash.sh
+deleted file mode 100755
+index 4f357817..00000000
+--- a/modules.d/99squash/clear-squash.sh
++++ /dev/null
+@@ -1,6 +0,0 @@
+-#!/bin/bash
+-mnt="/squash/root"
+-for dir in jsquash/root/*; do
+-	mnt="$mnt ${dir#$SQUASH_MNT}"
+-done
+-umount --lazy -- $mnt
+diff --git a/modules.d/99squash/init-squash.sh b/modules.d/99squash/init-squash.sh
+index fee0105e..3de6f819 100755
+--- a/modules.d/99squash/init-squash.sh
++++ b/modules.d/99squash/init-squash.sh
+@@ -1,61 +1,29 @@
+-#!/bin/bash
++#!/bin/sh
+ PATH=/bin:/sbin
+ 
+-SQUASH_IMG=/squash/root.img
+-SQUASH_MNT=/squash/root
++# Basic mounts for mounting a squash image
++mkdir /proc /sys /dev /run
++mount -t proc -o nosuid,noexec,nodev proc /proc
++mount -t sysfs -o nosuid,noexec,nodev sysfs /sys
++mount -t devtmpfs -o mode=755,noexec,nosuid,strictatime devtmpfs /dev
++mount -t tmpfs -o mode=755,nodev,nosuid,strictatime tmpfs /run
+ 
+-# Following mount points are neccessary for mounting a squash image
+-
+-[ ! -d /proc/self ] && \
+-    mount -t proc -o nosuid,noexec,nodev proc /proc
+-
+-[ ! -d /sys/kernel ] && \
+-    mount -t sysfs -o nosuid,noexec,nodev sysfs /sys
+-
+-[ ! -e /dev/loop-control ] && \
+-    mount -t devtmpfs -o mode=0755,noexec,nosuid,strictatime devtmpfs /dev
+-
+-# Need a loop device backend, overlayfs, and squashfs module
++# Load required modules
+ modprobe loop
+-if [ $? != 0 ]; then
+-    echo "Unable to setup loop module"
+-fi
+-
+ modprobe squashfs
+-if [ $? != 0 ]; then
+-    echo "Unable to setup squashfs module"
+-fi
+-
+ modprobe overlay
+-if [ $? != 0 ]; then
+-    echo "Unable to setup overlay module"
+-fi
+-
+-[ ! -d "$SQUASH_MNT" ] && \
+-	mkdir -m 0755 -p $SQUASH_MNT
+-
+-# Mount the squashfs image
+-mount -t squashfs -o ro,loop $SQUASH_IMG $SQUASH_MNT
+-
+-if [ $? != 0 ]; then
+-    echo "Unable to mount squashed initramfs image"
+-fi
+-
+-for file in $SQUASH_MNT/*; do
+-	file=${file#$SQUASH_MNT/}
+-	lowerdir=$SQUASH_MNT/$file
+-	workdir=/squash/overlay-work/$file
+-	upperdir=/$file
+-	mntdir=/$file
+ 
+-	mkdir -m 0755 -p $workdir
+-	mkdir -m 0755 -p $mntdir
++# Mount the squash image
++mount -t ramfs ramfs /squash
++mkdir -p /squash/root /squash/overlay/upper /squash/overlay/work
++mount -t squashfs -o ro,loop /squash-root.img /squash/root
+ 
+-	mount -t overlay overlay -o\
+-		lowerdir=$lowerdir,upperdir=$upperdir,workdir=$workdir $mntdir
+-done
++# Setup new root overlay
++mkdir /newroot
++mount -t overlay overlay -o lowerdir=/squash/root,upperdir=/squash/overlay/upper,workdir=/squash/overlay/work/ /newroot/
+ 
+-exec /init.orig
++# Move all mount points to new root to prepare chroot
++mount --move /squash /newroot/squash
+ 
+-echo "Something went wrong when trying to exec original init!"
+-exit 1
++# Jump to new root and clean setup files
++SYSTEMD_IN_INITRD=lenient exec switch_root /newroot /init
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index ad619176..50c92c31 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -19,56 +19,36 @@ depends() {
+ }
+ 
+ installpost() {
+-    local squash_candidate=( "usr" "etc" )
+-
+-    # shellcheck disable=SC2174
+-    mkdir -m 0755 -p "$squash_dir"
+-    for folder in "${squash_candidate[@]}"; do
+-        mv "$initdir/$folder" "$squash_dir/$folder"
++    # Move everything under $initdir except $squash_dir
++    # itself into squash image
++    for i in "$initdir"/*; do
++        [[ "$squash_dir" == "$i"/* ]] || mv "$i" "$squash_dir"/
+     done
+ 
+-    # Move some files out side of the squash image, including:
+-    # - Files required to boot and mount the squashfs image
+-    # - Files need to be accessible without mounting the squash image
+-    # - Initramfs marker
+-    for file in \
+-        "$squash_dir"/usr/lib/dracut/* \
+-        "$squash_dir"/etc/initrd-release
+-    do
++    # Create mount points for squash loader
++    mkdir -p "$initdir"/squash/
++    mkdir -p "$squash_dir"/squash/
++
++    # Copy dracut spec files out side of the squash image
++    # so dracut rebuild and lsinitrd can work
++    for file in "$squash_dir"/usr/lib/dracut/*; do
+         [[ -f $file ]] || continue
+         DRACUT_RESOLVE_DEPS=1 dracutsysrootdir="$squash_dir" inst "${file#$squash_dir}"
+-        rm "$file"
+-    done
+-
+-    # Install required files for the squash image setup script.
+-    inst_multiple modprobe mount mkdir ln echo rm
+-
+-    mv "$initdir"/init "$initdir"/init.orig
+-    inst "$moddir"/init-squash.sh /init
+-    inst "$moddir"/clear-squash.sh /squash/clear-squash.sh
+-
+-    # Keep systemctl outsite if we need switch root
+-    if [[ ! -f "$initdir/lib/dracut/no-switch-root" ]]; then
+-      inst "systemctl"
+-    fi
+-
+-    # Remove duplicated files
+-    for folder in "${squash_candidate[@]}"; do
+-        find "$initdir/$folder/" -not -type d \
+-            -exec bash -c 'mv -f "$squash_dir${1#$initdir}" "$1"' -- "{}" \;
+     done
+ 
+-    # Install required modules for the squash image init script.
++    # Install required modules and binaries for the squash image init script.
++    DRACUT_RESOLVE_DEPS=1 inst_multiple sh mount modprobe mkdir switch_root
+     hostonly="" instmods "loop" "squashfs" "overlay"
+     dracut_kernel_post
++
++    # Install squash image init script.
++    ln -sfn /usr/bin "$initdir/bin"
++    ln -sfn /usr/sbin "$initdir/sbin"
++    inst_simple "$moddir"/init-squash.sh /init
+ }
+ 
+ install() {
+     if [[ $DRACUT_SQUASH_POST_INST ]]; then
+         installpost
+-        return
+     fi
+-
+-    inst "$moddir/squash-mnt-clear.service" "$systemdsystemunitdir/squash-mnt-clear.service"
+-    systemctl -q --root "$initdir" add-wants initrd-switch-root.target squash-mnt-clear.service
+ }
+diff --git a/modules.d/99squash/squash-mnt-clear.service b/modules.d/99squash/squash-mnt-clear.service
+deleted file mode 100644
+index 84441f60..00000000
+--- a/modules.d/99squash/squash-mnt-clear.service
++++ /dev/null
+@@ -1,17 +0,0 @@
+-#  This file is part of dracut.
+-#
+-
+-[Unit]
+-Description=Cleanup squashfs mounts when switch root
+-DefaultDependencies=no
+-Before=initrd-switch-root.service
+-After=initrd-switch-root.target
+-ConditionPathExists=/squash/root
+-
+-[Service]
+-Type=oneshot
+-RemainAfterExit=no
+-StandardInput=null
+-StandardOutput=syslog+console
+-StandardError=syslog+console
+-ExecStart=/squash/clear-squash.sh
+

@@ -1,0 +1,48 @@
+From 6ed9cff05fb1015fe50951c93430052004d22b01 Mon Sep 17 00:00:00 2001
+From: Harald Hoyer <harald@redhat.com>
+Date: Fri, 21 May 2021 12:19:32 +0200
+Subject: [PATCH] fix(dracut-functions): get_maj_min without
+ get_maj_min_cache_file set
+
+If `get_maj_min_cache_file` is unset `get_maj_min()` would error out.
+
+Fix it to work without a cache file set.
+
+(cherry picked from commit a277a5fc7acc0a9e8d853f09671495f9d27645c1)
+
+Cherry-picked from: a277a5fc7acc0a9e8d853f09671495f9d27645c1
+Resolves: #1957622
+---
+ dracut-functions.sh | 15 +++++++++++----
+ 1 file changed, 11 insertions(+), 4 deletions(-)
+
+diff --git a/dracut-functions.sh b/dracut-functions.sh
+index a221967c..eb2ce748 100755
+--- a/dracut-functions.sh
++++ b/dracut-functions.sh
+@@ -200,13 +200,20 @@ get_fs_env() {
+ # 8:2
+ get_maj_min() {
+     local _majmin
+-    out="$(grep -m1 -oP "^$1 \K\S+$" "${get_maj_min_cache_file:?}")"
+-    if [ -z "$out" ]; then
++    local _out
++
++    if [[ $get_maj_min_cache_file ]]; then
++        _out="$(grep -m1 -oP "^$1 \K\S+$" "$get_maj_min_cache_file")"
++    fi
++
++    if ! [[ "$_out" ]]; then
+     _majmin="$(stat -L -c '%t:%T' "$1" 2>/dev/null)"
+         out="$(printf "%s" "$((0x${_majmin%:*})):$((0x${_majmin#*:}))")"
+-        echo "$1 $out" >> "${get_maj_min_cache_file:?}"
++        if [[ $get_maj_min_cache_file ]]; then
++            echo "$1 $_out" >> "$get_maj_min_cache_file"
++    fi
+     fi
+-    echo -n "$out"
++    echo -n "$_out"
+ }
+ 
+ # get_devpath_block <device>
+

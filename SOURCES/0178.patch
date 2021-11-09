@@ -1,0 +1,16 @@
+From 9795be398d697d9b5346f4e398b1a5511830546b Mon Sep 17 00:00:00 2001
+From: Harald Hoyer <harald@redhat.com>
+Date: Fri, 26 Mar 2021 10:29:35 +0100
+Subject: [PATCH] fix(squash): shellcheck for modules.d/99squash
+
+(cherry picked from commit cbef7cf3dac79f014200017e9b13e012f2a53f47)
+
+Resolves: #1959336
+---
+ modules.d/99squash/.shchkdir | 0
+ 1 file changed, 0 insertions(+), 0 deletions(-)
+
+diff --git a/modules.d/99squash/.shchkdir b/modules.d/99squash/.shchkdir
+new file mode 100644
+index 00000000..e69de29b
+

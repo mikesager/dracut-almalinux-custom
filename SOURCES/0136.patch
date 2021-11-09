@@ -1,0 +1,60 @@
+From 7c6839180cd616cebaeefd0cb05b60d022388277 Mon Sep 17 00:00:00 2001
+From: Adam Williamson <awilliam@redhat.com>
+Date: Thu, 26 Nov 2020 11:29:45 -0800
+Subject: [PATCH] Drop 51-dracut-rescue-postinst.sh entirely
+
+It is only installed on RHEL 8+, but as noted in the first commit
+that tried to do this - 0bb9a683 - we already have branches for
+all RHEL releases, so there's no point keeping such a conditional
+on the master branch. After 0bb9a683, 51-dracut-rescue-postinst.sh
+was re-added because Fedora 30 needed it, with a FIXME saying to
+remove it after F30 was released. But instead of that happening, it
+got changed to a conditional to install it on Fedora <= 30 or RHEL
+<= 8 in 9e68789d and the FIXME was removed, then in 9eb1d1ed that
+conditional was simplified to only refer to RHEL, so we wound up
+with this situation.
+
+Note the last two commits were never ported to the RHEL-8 branch,
+so it's broken, I will send a separate PR for that.
+
+Signed-off-by: Adam Williamson <awilliam@redhat.com>
+
+Cherry-picked from: b3e55bde30b8d34c7ed888794ef3f5e9f028b267
+Resolves: #1771517
+---
+ dracut.spec | 10 ----------
+ 1 file changed, 10 deletions(-)
+
+diff --git a/dracut.spec b/dracut.spec
+index dcaafa61..c8783699 100644
+--- a/dracut.spec
++++ b/dracut.spec
+@@ -277,15 +277,9 @@ rm -f -- $RPM_BUILD_ROOT%{_bindir}/mkinitrd
+ rm -f -- $RPM_BUILD_ROOT%{_bindir}/lsinitrd
+ %endif
+ 
+-%if 0%{?fedora} || 0%{?rhel}
+ echo 'hostonly="no"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/02-generic-image.conf
+ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/02-rescue.conf
+ 
+-# FIXME: remove after F30
+-mkdir -p $RPM_BUILD_ROOT%{_sysconfdir}/kernel/postinst.d
+-install -m 0755 51-dracut-rescue-postinst.sh $RPM_BUILD_ROOT%{_sysconfdir}/kernel/postinst.d/51-dracut-rescue-postinst.sh
+-%endif
+-
+ %files
+ %if %{with doc}
+ %doc README HACKING TODO AUTHORS NEWS dracut.html dracut.png dracut.svg
+@@ -477,11 +471,7 @@ install -m 0755 51-dracut-rescue-postinst.sh $RPM_BUILD_ROOT%{_sysconfdir}/kerne
+ 
+ %files config-rescue
+ %{dracutlibdir}/dracut.conf.d/02-rescue.conf
+-%if 0%{?fedora} || 0%{?rhel}
+ %{_prefix}/lib/kernel/install.d/51-dracut-rescue.install
+-# FIXME: remove after F30
+-%{_sysconfdir}/kernel/postinst.d/51-dracut-rescue-postinst.sh
+-%endif
+ 
+ %triggerin network -- dracut-network < 049-83.git20200525
+ echo '# Since rhel-8.3 dracut moved to use NetworkManager
+

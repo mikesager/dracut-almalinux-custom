@@ -1,0 +1,85 @@
+From f0f83da2c608202205f1092289a64de044ecc130 Mon Sep 17 00:00:00 2001
+From: Hari Bathini <hbathini@linux.ibm.com>
+Date: Fri, 11 Jun 2021 15:20:28 +0530
+Subject: [PATCH] fix(dracut.sh): handle '-i' option to include files beginning
+ with '.'
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+While including a directory using '--include' option, the file and
+subdirectory names that begin with '.' are not included. Also, dracut
+throws a warning message when a subdirectory is empty or only has
+files or subdirectories that begin with '.'.
+
+For example, while trying to include /tmpdata directory with the
+below tree:
+
+  # tree -a /tmpdata
+  /tmpdata
+  ├── .anothertestdir
+  ├── testdir
+  │   └── .testsubdir
+  └── .testfile
+
+dracut throws the below warning message:
+
+  # dracut --include /tmpdata /root
+  cp: cannot stat '/tmpdata/testdir/*': No such file or directory
+  #
+
+and this is how the included /tmpdata directory tree looks:
+
+  # tree -a root
+  root
+  └── testdir
+
+No file or directory beginning with '.' is included & also, copying
+/tmpdata/testdir reported "No such file or directory" warning. Using
+'.' instead of '*' in the below command will fix the warning whether
+the directory being copied is empty or only has files or directories
+that begin with dot:
+
+  $DRACUT_CP -t "$object_destdir" "$dracutsysrootdir$objectname"/*
+
+Also, enable 'dotglob' temporarily to include files and directories
+beginning with a `.' in the results of pathname expansion of source
+directory being included.
+
+Signed-off-by: Hari Bathini <hbathini@linux.ibm.com>
+(cherry picked from commit f1138012c9dc44e6614466c0a8e929fc55e4a5dd)
+
+Cherry-picked from: f1138012
+Resolves: #1959336
+---
+ dracut.sh | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index bf79568c..3fd31e21 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1606,6 +1606,8 @@ for ((i=0; i < ${#include_src[@]}; i++)); do
+             # check for preexisting symlinks, so we can cope with the
+             # symlinks to $prefix
+             # Objectname is a file or a directory
++            reset_dotglob="$(shopt -p dotglob)"
++            shopt -q -s dotglob
+             for objectname in "$src"/*; do
+                 [[ -e "$objectname" || -h "$objectname" ]] || continue
+                 if [[ -d "$objectname" ]]; then
+@@ -1615,11 +1617,12 @@ for ((i=0; i < ${#include_src[@]}; i++)); do
+                         mkdir -m 0755 -p "$object_destdir"
+                         chmod --reference="$objectname" "$object_destdir"
+                     fi
+-                    $DRACUT_CP -t "$object_destdir" "$objectname"/*
++                    $DRACUT_CP -t "$object_destdir" "$objectname"/.
+                 else
+                     $DRACUT_CP -t "$destdir" "$objectname"
+                 fi
+             done
++            eval "$reset_dotglob"
+         fi
+     fi
+ done
+

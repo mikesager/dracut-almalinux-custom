@@ -1,0 +1,35 @@
+From be22f63f7d7c62d88edb5a24dccfff2774094773 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Zolt=C3=A1n=20B=C3=B6sz=C3=B6rm=C3=A9nyi?= <zboszor@pr.hu>
+Date: Tue, 19 Jan 2021 15:17:05 +0100
+Subject: [PATCH] fix(99squash): use kernel config instead of modprobe to check
+ modules
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Signed-off-by: Zoltán Böszörményi <zboszor@pr.hu>
+(cherry picked from commit 911c2de9c34a2e96be3973954d368d3a14eb6785)
+
+Resolves: #1959336
+---
+ modules.d/99squash/module-setup.sh | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index e2fe3dd4..d3680d63 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -11,9 +11,9 @@ check() {
+         return 1
+     fi
+ 
+-    for i in squashfs loop overlay; do
+-        if ! check_kernel_module $i; then
+-            derror "dracut-squash module requires kernel module $i"
++    for i in CONFIG_SQUASHFS CONFIG_BLK_DEV_LOOP CONFIG_OVERLAY_FS ; do
++        if ! check_kernel_config $i; then
++            derror "dracut-squash module requires kernel configuration $i (y or m)"
+             return 1
+         fi
+     done
+

@@ -1,0 +1,24 @@
+From a1b8660316c7d0a541d9e4139df5c5efe2532365 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Thu, 29 Jul 2021 17:40:26 +0200
+Subject: [PATCH] dracut-functions: fix botched backport
+
+Resolves: #1957622
+---
+ dracut-functions.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dracut-functions.sh b/dracut-functions.sh
+index eb2ce748..d75696fd 100755
+--- a/dracut-functions.sh
++++ b/dracut-functions.sh
+@@ -208,7 +208,7 @@ get_maj_min() {
+ 
+     if ! [[ "$_out" ]]; then
+     _majmin="$(stat -L -c '%t:%T' "$1" 2>/dev/null)"
+-        out="$(printf "%s" "$((0x${_majmin%:*})):$((0x${_majmin#*:}))")"
++        _out="$(printf "%s" "$((0x${_majmin%:*})):$((0x${_majmin#*:}))")"
+         if [[ $get_maj_min_cache_file ]]; then
+             echo "$1 $_out" >> "$get_maj_min_cache_file"
+     fi
+

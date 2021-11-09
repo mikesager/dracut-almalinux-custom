@@ -1,0 +1,67 @@
+From bc6b4ffd4e7babd34e207c2aa8bed7f0fd8bafcf Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Mon, 2 Aug 2021 12:42:09 +0200
+Subject: [PATCH] dracut-functions: backport block_is_* functions
+
+Based on 480aa9695f8c2e2b30c8f41ae8483140020d23db
+RHEL-only
+
+Related: #1959336
+---
+ dracut-functions.sh | 44 ++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 44 insertions(+)
+
+diff --git a/dracut-functions.sh b/dracut-functions.sh
+index d75696fd..14e60a9c 100755
+--- a/dracut-functions.sh
++++ b/dracut-functions.sh
+@@ -718,3 +718,47 @@ btrfs_devs() {
+         printf -- "%s\n" "$_dev"
+         done
+ }
++
++# block_is_nbd <maj:min>
++# Check whether $1 is an nbd device
++block_is_nbd() {
++    [[ -b /dev/block/$1 && $1 == 43:* ]]
++}
++
++# block_is_iscsi <maj:min>
++# Check whether $1 is an nbd device
++block_is_iscsi() {
++    local _dir
++    local _dev=$1
++    [[ -L "/sys/dev/block/$_dev" ]] || return
++    _dir="$(readlink -f "/sys/dev/block/$_dev")" || return
++    until [[ -d "$_dir/sys" || -d "$_dir/iscsi_session" ]]; do
++        _dir="$_dir/.."
++    done
++    [[ -d "$_dir/iscsi_session" ]]
++}
++
++# block_is_fcoe <maj:min>
++# Check whether $1 is an FCoE device
++# Will not work for HBAs that hide the ethernet aspect
++# completely and present a pure FC device
++block_is_fcoe() {
++    local _dir
++    local _dev=$1
++    [[ -L "/sys/dev/block/$_dev" ]] || return
++    _dir="$(readlink -f "/sys/dev/block/$_dev")"
++    until [[ -d "$_dir/sys" ]]; do
++        _dir="$_dir/.."
++        if [[ -d "$_dir/subsystem" ]]; then
++            subsystem=$(basename $(readlink $_dir/subsystem))
++            [[ $subsystem == "fcoe" ]] && return 0
++        fi
++    done
++    return 1
++}
++
++# block_is_netdevice <maj:min>
++# Check whether $1 is a net device
++block_is_netdevice() {
++    block_is_nbd "$1" || block_is_iscsi "$1" || block_is_fcoe "$1"
++}
+\ No newline at end of file
+

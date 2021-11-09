@@ -1,0 +1,36 @@
+From 3789ef258ecced4b91139b10e71dc787e48519e7 Mon Sep 17 00:00:00 2001
+From: Harald Hoyer <harald@redhat.com>
+Date: Fri, 23 Apr 2021 11:11:27 +0200
+Subject: [PATCH] fix(multipath): stop multipath before udev db cleanup
+
+All device-mapper based devices, including device-mapper-multipath,
+do reuse the udev db from the initramfs after switching to the root fs.
+
+Therefore device-mapper devices have to be correctly initialized before
+the udev daemon is stopped, to have the correct entries in the udev db.
+
+See also https://bugzilla.redhat.com/show_bug.cgi?id=1949076
+
+(cherry picked from commit 3c244c7ca3555b526883dc20104c469b39085cbe)
+
+Resolves: #1949076
+---
+ modules.d/90multipath/multipathd.service | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/modules.d/90multipath/multipathd.service b/modules.d/90multipath/multipathd.service
+index 646c7c14..b544de21 100644
+--- a/modules.d/90multipath/multipathd.service
++++ b/modules.d/90multipath/multipathd.service
+@@ -4,8 +4,10 @@ Before=iscsi.service iscsid.service lvm2-activation-early.service
+ Wants=systemd-udev-trigger.service systemd-udev-settle.service local-fs-pre.target
+ After=systemd-udev-trigger.service systemd-udev-settle.service
+ Before=local-fs-pre.target
++Before=initrd-cleanup.service
+ DefaultDependencies=no
+ Conflicts=shutdown.target
++Conflicts=initrd-cleanup.service
+ ConditionKernelCommandLine=!nompath
+ ConditionKernelCommandLine=!rd.multipath=0
+ ConditionKernelCommandLine=!rd_NO_MULTIPATH
+

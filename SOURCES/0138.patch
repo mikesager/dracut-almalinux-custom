@@ -1,0 +1,33 @@
+From 68826ecc8d1b0605cd69a4f679c0cd4de4e12b18 Mon Sep 17 00:00:00 2001
+From: David Tardon <dtardon@redhat.com>
+Date: Tue, 9 Feb 2021 16:46:07 +0100
+Subject: [PATCH] 35network-legacy: discard pointless RTNETLINK message
+
+This command prints
+
+    RTNETLINK answers: Network is unreachable
+
+to stderr if IP is not assigned yet, but that's the thing we are
+checking for, so there's no point in showing the message.
+
+(cherry picked from commit c46ed697a20798c09ead362443691d810e122996)
+
+Resolves: #1879597
+---
+ modules.d/35network-legacy/ifup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/35network-legacy/ifup.sh b/modules.d/35network-legacy/ifup.sh
+index 61838741..bd560379 100755
+--- a/modules.d/35network-legacy/ifup.sh
++++ b/modules.d/35network-legacy/ifup.sh
+@@ -106,7 +106,7 @@ do_static() {
+         return 1
+     fi
+ 
+-    ip route get "$ip" | {
++    ip route get "$ip" 2>/dev/null | {
+         read a rest
+         if [ "$a" = "local" ]; then
+             warn "Not assigning $ip to interface $netif, cause it is already assigned!"
+

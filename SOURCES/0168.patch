@@ -1,0 +1,37 @@
+From 4a0aa64ecdcaf47e17e27c59e6ea4efc19359c00 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Fri, 23 Jul 2021 16:24:51 +0200
+Subject: [PATCH] fix: revise squash module checks
+
+Based on 16efdfa25c65c31acc97d91b7baf4f7bb4ea8510
+---
+ modules.d/99squash/module-setup.sh | 12 ++----------
+ 1 file changed, 2 insertions(+), 10 deletions(-)
+
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index 0acf7c3a..dd4f3ecf 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -1,19 +1,11 @@
+ #!/bin/bash
+ 
+ check() {
+-    if ! dracut_module_included "systemd-initrd"; then
+-        derror "dracut-squash only supports systemd bases initramfs"
+-        return 1
+-    fi
+-
+-    if ! find_binary mksquashfs >/dev/null || ! find_binary unsquashfs >/dev/null ; then
+-        derror "dracut-squash module requires squashfs-tools"
+-        return 1
+-    fi
++    require_binaries mksquashfs unsquashfs || return 1
+ 
+     for i in CONFIG_SQUASHFS CONFIG_BLK_DEV_LOOP CONFIG_OVERLAY_FS ; do
+         if ! check_kernel_config $i; then
+-            derror "dracut-squash module requires kernel configuration $i (y or m)"
++            dinfo "dracut-squash module requires kernel configuration $i (y or m)"
+             return 1
+         fi
+     done
+

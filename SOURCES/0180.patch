@@ -1,0 +1,36 @@
+From faadc1cbcd1ca35393b75f93757a89621957453c Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Tue, 22 Jun 2021 21:49:20 +0800
+Subject: [PATCH] feat(squash): install umount util
+
+Also install umount binary, make it possible to cleanup squash overlay
+mounts. This is useful for other tools reusing the dracut initramfs built
+with squash module enabled.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 563f543424c66bf38e6cbd3f489655d45ad9b5c5)
+
+Resolves: #1959336
+---
+ modules.d/99squash/module-setup.sh | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index 81a5b3f7..9bb30b2e 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -42,11 +42,11 @@ installpost() {
+     # Install required modules and binaries for the squash image init script.
+     if [[ $_busybox ]]; then
+         inst "$_busybox" /usr/bin/busybox
+-        for _i in sh echo mount modprobe mkdir switch_root grep; do
++        for _i in sh echo mount modprobe mkdir switch_root grep umount; do
+             ln_r /usr/bin/busybox /usr/bin/$_i
+         done
+     else
+-        DRACUT_RESOLVE_DEPS=1 inst_multiple sh mount modprobe mkdir switch_root grep
++        DRACUT_RESOLVE_DEPS=1 inst_multiple sh mount modprobe mkdir switch_root grep umount
+     fi
+ 
+     hostonly="" instmods "loop" "squashfs" "overlay"
+

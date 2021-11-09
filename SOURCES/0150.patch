@@ -1,0 +1,55 @@
+From 81f38303351391b054e28d91cb101756233d2b64 Mon Sep 17 00:00:00 2001
+From: Hannes Reinecke <hare@suse.com>
+Date: Mon, 28 Sep 2020 13:39:07 +0200
+Subject: [PATCH] 95nvmf: add nvmf-autoconnect script
+
+Add a script to run FC autoconnect.
+
+Signed-off-by: Hannes Reinecke <hare@suse.de>
+(cherry picked from commit 0e2ef80993858992f6219b5162289568937a1fac)
+
+Cherry-picked from: 0e2ef80993858992f6219b5162289568937a1fac
+Resolves: #1975707
+---
+ modules.d/95nvmf/module-setup.sh                | 2 ++
+ modules.d/95nvmf/nvmf-autoconnect.sh            | 5 +++++
+ modules.d/95nvmf/parse-nvmf-boot-connections.sh | 2 +-
+ 3 files changed, 8 insertions(+), 1 deletion(-)
+
+diff --git a/modules.d/95nvmf/module-setup.sh b/modules.d/95nvmf/module-setup.sh
+index 418b5e0c..3923451b 100755
+--- a/modules.d/95nvmf/module-setup.sh
++++ b/modules.d/95nvmf/module-setup.sh
+@@ -79,6 +79,8 @@ install() {
+ 
+     inst_multiple ip sed
+ 
++    inst_script "${moddir}/nvmf-autoconnect.sh" /sbin/nvmf-autoconnect.sh
++
+     inst_multiple nvme
+     inst_multiple -o \
+         "$systemdsystemunitdir/nvm*-connect@.service" \
+diff --git a/modules.d/95nvmf/nvmf-autoconnect.sh b/modules.d/95nvmf/nvmf-autoconnect.sh
+new file mode 100644
+index 00000000..c8f676a7
+--- /dev/null
++++ b/modules.d/95nvmf/nvmf-autoconnect.sh
+@@ -0,0 +1,5 @@
++#!/bin/bash
++
++[ -f /sys/class/fc/fc_udev_device/nvme_discovery ] || exit 1
++echo add > /sys/class/fc/fc_udev_device/nvme_discovery
++exit 0
+diff --git a/modules.d/95nvmf/parse-nvmf-boot-connections.sh b/modules.d/95nvmf/parse-nvmf-boot-connections.sh
+index 61c6dec1..ceb52f1e 100755
+--- a/modules.d/95nvmf/parse-nvmf-boot-connections.sh
++++ b/modules.d/95nvmf/parse-nvmf-boot-connections.sh
+@@ -133,6 +133,6 @@ else
+         /sbin/initqueue --settled --onetime --unique /usr/sbin/nvme connect-all -t tcp -a $traddr -s $trsvcid
+         > /tmp/net.$ifname.did-setup
+     else
+-        /sbin/initqueue --finished --unique --name nvme-fc-autoconnect echo 1 > /sys/class/fc/fc_udev_device/nvme_discovery
++        /sbin/initqueue --finished --onetime --unique --name nvme-fc-autoconnect /sbin/nvmf-autoconnect.sh
+     fi
+ fi
+

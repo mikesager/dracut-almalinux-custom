@@ -1,0 +1,63 @@
+From c588aea59c9a2441596b84722c6c32449676f07d Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Thu, 18 Feb 2021 11:23:41 +0100
+Subject: [PATCH] fix(fcoe): rename rd.nofcoe to rd.fcoe
+
+The current name of this bool is kinda stupid. Based on the manpage
+setting it to 0 turns off fcoe, which means that nofcoe=1 should mean
+that it is on.
+
+Let's just do the same thing as with rd.lvm=0, rd.luks=0,....
+
+(cherry picked from commit 6f7823bce65dd4b52497dbb94892b637fd06471a)
+
+Resolves: #1929201
+---
+ dracut.cmdline.7.asc           | 2 +-
+ modules.d/95fcoe/lldpad.sh     | 4 ++--
+ modules.d/95fcoe/parse-fcoe.sh | 4 ++--
+ 3 files changed, 5 insertions(+), 5 deletions(-)
+
+diff --git a/dracut.cmdline.7.asc b/dracut.cmdline.7.asc
+index bf745575..327f85de 100644
+--- a/dracut.cmdline.7.asc
++++ b/dracut.cmdline.7.asc
+@@ -779,7 +779,7 @@ iscsistart -b --param node.session.timeo.replacement_timeout=30
+ 
+ FCoE
+ ~~~~
+-**rd.nofcoe=0**::
++**rd.fcoe=0**::
+     disable FCoE and lldpad
+ 
+ **fcoe=**__<edd|interface|MAC>__:__{dcb|nodcb}__:__{fabric|vn2vn}__::
+diff --git a/modules.d/95fcoe/lldpad.sh b/modules.d/95fcoe/lldpad.sh
+index 6b1844b0..c860035f 100755
+--- a/modules.d/95fcoe/lldpad.sh
++++ b/modules.d/95fcoe/lldpad.sh
+@@ -1,7 +1,7 @@
+ #!/bin/bash
+ 
+-if ! getargbool 1 rd.nofcoe ; then
+-	info "rd.nofcoe=0: skipping lldpad activation"
++if ! getargbool 1 rd.fcoe -d -n rd.nofcoe ; then
++	info "rd.fcoe=0: skipping lldpad activation"
+ 	return 0
+ fi
+ 
+diff --git a/modules.d/95fcoe/parse-fcoe.sh b/modules.d/95fcoe/parse-fcoe.sh
+index 5553602f..0a8067f5 100755
+--- a/modules.d/95fcoe/parse-fcoe.sh
++++ b/modules.d/95fcoe/parse-fcoe.sh
+@@ -13,8 +13,8 @@
+ # fcoe=eth0:nodcb:vn2vn
+ # fcoe=4a:3f:4c:04:f8:d7:nodcb:fabric
+ 
+-if ! getargbool 1 rd.nofcoe ; then
+-	info "rd.nofcoe=0: skipping fcoe"
++if ! getargbool 1 rd.fcoe -d -n rd.nofcoe ; then
++	info "rd.fcoe=0: skipping fcoe"
+ 	return 0
+ fi
+ 
+

@@ -1,0 +1,154 @@
+From 47bc3efe3e3d2b97b4a47e9380c061db0bc368c6 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Zolt=C3=A1n=20B=C3=B6sz=C3=B6rm=C3=A9nyi?= <zboszor@pr.hu>
+Date: Sun, 7 Feb 2021 15:01:49 +0100
+Subject: [PATCH] fix: use find_binary
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Use find_binary instead of type -P because the former works if
+dracutsysrootdir is set.
+
+Signed-off-by: Zoltán Böszörményi <zboszor@pr.hu>
+(cherry picked from commit 433a9ec0147e578b91b4c6e20629a0dbeb9d0725)
+
+Resolves: #1959336
+---
+ modules.d/00systemd/module-setup.sh   | 4 ++--
+ modules.d/02caps/module-setup.sh      | 2 +-
+ modules.d/05busybox/module-setup.sh   | 2 +-
+ modules.d/50gensplash/module-setup.sh | 2 +-
+ modules.d/50plymouth/module-setup.sh  | 2 +-
+ modules.d/90lvm/module-setup.sh       | 2 +-
+ modules.d/98syslog/module-setup.sh    | 6 +++---
+ modules.d/99memstrack/module-setup.sh | 2 +-
+ modules.d/99squash/module-setup.sh    | 2 +-
+ 9 files changed, 12 insertions(+), 12 deletions(-)
+
+diff --git a/modules.d/00systemd/module-setup.sh b/modules.d/00systemd/module-setup.sh
+index 1f0b5dad..38c244a2 100755
+--- a/modules.d/00systemd/module-setup.sh
++++ b/modules.d/00systemd/module-setup.sh
+@@ -209,8 +209,8 @@ install() {
+     ln_r $systemdutildir/systemd "/sbin/init"
+ 
+     inst_binary true
+-    ln_r $(type -P true) "/usr/bin/loginctl"
+-    ln_r $(type -P true) "/bin/loginctl"
++    ln_r $(find_binary true) "/usr/bin/loginctl"
++    ln_r $(find_binary true) "/bin/loginctl"
+     inst_rules \
+         70-uaccess.rules \
+         71-seat.rules \
+diff --git a/modules.d/02caps/module-setup.sh b/modules.d/02caps/module-setup.sh
+index fb16526a..d1ce6cdc 100755
+--- a/modules.d/02caps/module-setup.sh
++++ b/modules.d/02caps/module-setup.sh
+@@ -15,7 +15,7 @@ depends() {
+ install() {
+     if ! dracut_module_included "systemd"; then
+         inst_hook pre-pivot 00 "$moddir/caps.sh"
+-        inst $(type -P capsh 2>/dev/null) /usr/sbin/capsh
++        inst $(find_binary capsh 2>/dev/null) /usr/sbin/capsh
+         # capsh wants bash and we need bash also
+         inst /bin/bash
+     else
+diff --git a/modules.d/05busybox/module-setup.sh b/modules.d/05busybox/module-setup.sh
+index 5d88c5d1..20b36c16 100755
+--- a/modules.d/05busybox/module-setup.sh
++++ b/modules.d/05busybox/module-setup.sh
+@@ -16,7 +16,7 @@ depends() {
+ install() {
+     local _i _path _busybox
+     local _progs=()
+-    _busybox=$(type -P busybox)
++    _busybox=$(find_binary busybox)
+     inst $_busybox /usr/bin/busybox
+     for _i in $($_busybox --list); do
+         [[ ${_i} == busybox ]] && continue
+diff --git a/modules.d/50gensplash/module-setup.sh b/modules.d/50gensplash/module-setup.sh
+index d2fccc26..d0aa4a78 100755
+--- a/modules.d/50gensplash/module-setup.sh
++++ b/modules.d/50gensplash/module-setup.sh
+@@ -40,7 +40,7 @@ install() {
+         return ${_ret}
+     }
+ 
+-    type -P splash_geninitramfs >/dev/null || return 1
++    find_binary splash_geninitramfs >/dev/null || return 1
+ 
+     _opts=''
+     if [[ ${DRACUT_GENSPLASH_THEME} ]]; then
+diff --git a/modules.d/50plymouth/module-setup.sh b/modules.d/50plymouth/module-setup.sh
+index b51913e8..0568d21c 100755
+--- a/modules.d/50plymouth/module-setup.sh
++++ b/modules.d/50plymouth/module-setup.sh
+@@ -2,7 +2,7 @@
+ 
+ pkglib_dir() {
+     local _dirs="/usr/lib/plymouth /usr/libexec/plymouth/"
+-    if type -P dpkg-architecture &>/dev/null; then
++    if find_binary dpkg-architecture &>/dev/null; then
+         _dirs+=" /usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)/plymouth"
+     fi
+     for _dir in $_dirs; do
+diff --git a/modules.d/90lvm/module-setup.sh b/modules.d/90lvm/module-setup.sh
+index 6ca4ee44..fffcbe31 100755
+--- a/modules.d/90lvm/module-setup.sh
++++ b/modules.d/90lvm/module-setup.sh
+@@ -119,7 +119,7 @@ install() {
+ 
+     inst_libdir_file "libdevmapper-event-lvm*.so"
+ 
+-    if [[ $hostonly ]] && type -P lvs &>/dev/null; then
++    if [[ $hostonly ]] && find_binary lvs &>/dev/null; then
+         for dev in "${!host_fs_types[@]}"; do
+             [ -e /sys/block/${dev#/dev/}/dm/name ] || continue
+             dev=$(</sys/block/${dev#/dev/}/dm/name)
+diff --git a/modules.d/98syslog/module-setup.sh b/modules.d/98syslog/module-setup.sh
+index aa0c8eaf..2435c4d5 100755
+--- a/modules.d/98syslog/module-setup.sh
++++ b/modules.d/98syslog/module-setup.sh
+@@ -15,12 +15,12 @@ depends() {
+ install() {
+     local _i
+     local _installs
+-    if type -P rsyslogd >/dev/null; then
++    if find_binary rsyslogd >/dev/null; then
+         _installs="rsyslogd"
+         inst_libdir_file rsyslog/lmnet.so rsyslog/imklog.so rsyslog/imuxsock.so rsyslog/imjournal.so
+-    elif type -P syslogd >/dev/null; then
++    elif find_binary syslogd >/dev/null; then
+         _installs="syslogd"
+-    elif type -P syslog-ng >/dev/null; then
++    elif find_binary syslog-ng >/dev/null; then
+         _installs="syslog-ng"
+     else
+         derror "Could not find any syslog binary although the syslogmodule" \
+diff --git a/modules.d/99memstrack/module-setup.sh b/modules.d/99memstrack/module-setup.sh
+index d5bacb4d..e156290c 100755
+--- a/modules.d/99memstrack/module-setup.sh
++++ b/modules.d/99memstrack/module-setup.sh
+@@ -1,7 +1,7 @@
+ #!/usr/bin/bash
+ 
+ check() {
+-    if type -P memstrack >/dev/null; then
++    if find_binary memstrack >/dev/null; then
+         dinfo "memstrack is available"
+         return 0
+     fi
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index d3680d63..b183daf7 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -6,7 +6,7 @@ check() {
+         return 1
+     fi
+ 
+-    if ! type -P mksquashfs >/dev/null || ! type -P unsquashfs >/dev/null ; then
++    if ! find_binary mksquashfs >/dev/null || ! find_binary unsquashfs >/dev/null ; then
+         derror "dracut-squash module requires squashfs-tools"
+         return 1
+     fi
+

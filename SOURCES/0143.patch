@@ -1,0 +1,89 @@
+From f03ee48fab36a9fe55082f15111771b698081598 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Renaud=20M=C3=A9trich?= <rmetrich@redhat.com>
+Date: Wed, 5 May 2021 15:46:08 +0200
+Subject: [PATCH] fix(dracut-functions): implement a cache for get_maj_min
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+On systems with a large number of devices, usually multipath devices,
+dracut can spend a lot of time stat'ing the devices to collect the
+major/minor numbers, leading to huge slowness rebuilding the initramfs
+when stat'ing devices is slow (seen with oracleasm file systems in
+particular).
+This commit implements a basic cache stored in a file under
+DRACUT_TMPDIR storing the major:minor corresponding to the specified
+device.
+
+Reproducer: create N loopback devices used as a LVM extension to volume
+group hosting the root file system
+
+  # LVMVG="rhel"
+  # NDEVICES=200
+  # mkdir devices; for i in $(seq 1 $NDEVICES); do
+    truncate -s 10m devices/$i; losetup loop$i devices/$i
+  done
+  # vgextend $LVMVG $(/bin/ls -1 /dev/loop[0-9]*)
+
+With standard code (tested with RHEL8.3 dracut):
+
+  # dracut -f --debug /tmp/initramfs.img $(uname -r) >/tmp/debug 2>&1
+  # grep -c "stat -L -c" /tmp/debug
+  2440
+
+With this code:
+
+  # dracut -f --debug /tmp/initramfs.img $(uname -r) >/tmp/debug_optim 2>&1
+  # grep -c "stat -L -c" /tmp/debug_optim
+  205
+
+Signed-off-by: Renaud Métrich <rmetrich@redhat.com>
+(cherry picked from commit c3bb9d18dceed7db6d16f9c2a7f682c5934099d7)
+
+Cherry-picked from: c3bb9d18dceed7db6d16f9c2a7f682c5934099d7
+Resolves: #1957622
+---
+ dracut-functions.sh | 10 +++++++---
+ dracut.sh           |  4 ++++
+ 2 files changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/dracut-functions.sh b/dracut-functions.sh
+index 1431dd18..a221967c 100755
+--- a/dracut-functions.sh
++++ b/dracut-functions.sh
+@@ -199,12 +199,16 @@ get_fs_env() {
+ # $ get_maj_min /dev/sda2
+ # 8:2
+ get_maj_min() {
+-    local _maj _min _majmin
++    local _majmin
++    out="$(grep -m1 -oP "^$1 \K\S+$" "${get_maj_min_cache_file:?}")"
++    if [ -z "$out" ]; then
+     _majmin="$(stat -L -c '%t:%T' "$1" 2>/dev/null)"
+-    printf "%s" "$((0x${_majmin%:*})):$((0x${_majmin#*:}))"
++        out="$(printf "%s" "$((0x${_majmin%:*})):$((0x${_majmin#*:}))")"
++        echo "$1 $out" >> "${get_maj_min_cache_file:?}"
++    fi
++    echo -n "$out"
+ }
+ 
+-
+ # get_devpath_block <device>
+ # get the DEVPATH in /sys of a block device
+ get_devpath_block() {
+diff --git a/dracut.sh b/dracut.sh
+index 4340e646..f8e68ccb 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -901,6 +901,10 @@ readonly DRACUT_TMPDIR="$(mktemp -p "$TMPDIR/" -d -t dracut.XXXXXX)"
+     exit 1
+ }
+ 
++# Cache file used to optimize get_maj_min()
++declare -x -r get_maj_min_cache_file="${DRACUT_TMPDIR}/majmin_cache"
++: > "$get_maj_min_cache_file"
++
+ # clean up after ourselves no matter how we die.
+ trap '
+     ret=$?;
+

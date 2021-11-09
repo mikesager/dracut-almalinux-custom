@@ -1,0 +1,53 @@
+From 0c2ac6b7503661948ead031f745736e35fef2e3f Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Wed, 26 Dec 2018 17:38:02 +0800
+Subject: [PATCH] lsinitrd: list squash content as well
+
+When the initramfs is built with squash module enabled, the content
+inside squash image will be invisible from the lsinitrd tool. This
+commit make lsinitrd detect and list the content of the squash image as
+well to avoid possible confusion.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 1ff306a3964840fc548188a8aa4862143b347e8a)
+
+Resolves: #1959336
+---
+ lsinitrd.sh | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/lsinitrd.sh b/lsinitrd.sh
+index a2fa4d7a..0b42b9a4 100755
+--- a/lsinitrd.sh
++++ b/lsinitrd.sh
+@@ -160,6 +160,21 @@ list_files()
+     echo "========================================================================"
+ }
+ 
++list_squash_content()
++{
++    SQUASH_IMG="squash/root.img"
++    SQUASH_TMPFILE="$(mktemp -t --suffix=.root.sqsh lsinitrd.XXXXXX)"
++    trap "rm -f '$SQUASH_TMPFILE'" EXIT
++    $CAT "$image" 2>/dev/null | cpio --extract --verbose --quiet --to-stdout -- \
++        $SQUASH_IMG > "$SQUASH_TMPFILE" 2>/dev/null
++    if [[ -s $SQUASH_TMPFILE ]]; then
++        echo "Squashed content ($SQUASH_IMG):"
++        echo "========================================================================"
++        unsquashfs -ll "$SQUASH_TMPFILE" | tail -n +4
++        echo "========================================================================"
++    fi
++}
++
+ unpack_files()
+ {
+     if (( ${#filenames[@]} > 0 )); then
+@@ -287,6 +302,7 @@ else
+         echo
+         list_modules
+         list_files
++        list_squash_content
+     fi
+ fi
+ 
+

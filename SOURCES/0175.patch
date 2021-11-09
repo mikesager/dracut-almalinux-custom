@@ -1,0 +1,80 @@
+From f462176a19f463861fea7a26af6288403785eb9b Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Mon, 15 Feb 2021 14:04:05 +0800
+Subject: [PATCH] feat(squash): use busybox for early setup if available
+
+Use busybox can help reduce the size of early setup environment.
+
+With this change, everything is packed in the squash image, and
+the setup files will be dropped once squash image setup is done,
+so initramfs stage memory usage is reduced to the minimun,
+and initramfs decompress is also faster.
+
+File layout of a squash initramfs looks like this:
+
+========================================================================
+drwxr-xr-x   1 root     root            0 Feb 15 14:07 .
+-rwxr-xr-x   1 root     root          946 Feb 15 14:07 init
+lrwxrwxrwx   1 root     root            7 Feb 15 14:07 lib -> usr/lib
+drwxr-xr-x   1 root     root            0 Feb 15 14:07 squash
+-rw-r--r--   1 root     root     91000832 Feb 15 14:07 squash-root.img
+drwxr-xr-x   1 root     root            0 Feb 15 14:07 usr
+drwxr-xr-x   1 root     root            0 Feb 15 14:07 usr/bin
+-rwxr-xr-x   1 root     root      1293688 Jul 27  2020 usr/bin/busybox
+lrwxrwxrwx   1 root     root            7 Feb 15 14:07 usr/bin/echo -> busybox
+lrwxrwxrwx   1 root     root            7 Feb 15 14:07 usr/bin/mkdir -> busybox
+lrwxrwxrwx   1 root     root            7 Feb 15 14:07 usr/bin/modprobe -> busybox
+lrwxrwxrwx   1 root     root            7 Feb 15 14:07 usr/bin/mount -> busybox
+lrwxrwxrwx   1 root     root            7 Feb 15 14:07 usr/bin/sh -> busybox
+lrwxrwxrwx   1 root     root            7 Feb 15 14:07 usr/bin/switch_root -> busybox
+drwxr-xr-x   1 root     root            0 Feb 15 14:07 usr/lib
+drwxr-xr-x   1 root     root            0 Feb 15 14:07 usr/lib/dracut
+-rw-r--r--   1 root     root           23 Feb 15 14:07 usr/lib/dracut/build-parameter.txt
+-rw-r--r--   1 root     root           31 Feb 15 14:07 usr/lib/dracut/dracut-051-93.git20210215.fc33
+-rw-r--r--   1 root     root          358 Feb 15 14:07 usr/lib/dracut/modules.txt
+-rw-r--r--   1 root     root            0 Feb 15 14:07 usr/lib/dracut/need-initqueue
+drwxr-xr-x   1 root     root            0 Feb 15 14:07 usr/lib/modules
+drwxr-xr-x   1 root     root            0 Feb 15 14:07 usr/lib/modules/5.10.11-200.fc33.x86_64
+drwxr-xr-x   1 root     root            0 Feb 15 14:07 usr/lib/modules/5.10.11-200.fc33.x86_64/kernel
+<... kernel module misc files skipped ... >
+========================================================================
+
+(cherry picked from commit 90f269f6afe409925bad86f0bd7e9322ad9b4fb0)
+
+Resolves: #1959336
+---
+ modules.d/99squash/module-setup.sh | 13 ++++++++++++-
+ 1 file changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index 50c92c31..72cc83ad 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -19,6 +19,9 @@ depends() {
+ }
+ 
+ installpost() {
++    local _busybox
++    _busybox=$(find_binary busybox)
++
+     # Move everything under $initdir except $squash_dir
+     # itself into squash image
+     for i in "$initdir"/*; do
+@@ -37,7 +40,15 @@ installpost() {
+     done
+ 
+     # Install required modules and binaries for the squash image init script.
+-    DRACUT_RESOLVE_DEPS=1 inst_multiple sh mount modprobe mkdir switch_root
++    if [[ $_busybox ]]; then
++        inst "$_busybox" /usr/bin/busybox
++        for _i in sh echo mount modprobe mkdir switch_root; do
++            ln_r /usr/bin/busybox /usr/bin/$_i
++        done
++    else
++        DRACUT_RESOLVE_DEPS=1 inst_multiple sh mount modprobe mkdir switch_root
++    fi
++
+     hostonly="" instmods "loop" "squashfs" "overlay"
+     dracut_kernel_post
+ 
+

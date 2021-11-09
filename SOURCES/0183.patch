@@ -1,0 +1,35 @@
+From 9fdbd56ecef7498d2d61fc7123b958add945f46b Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Sat, 12 Jun 2021 02:25:09 +0800
+Subject: [PATCH] fix(dracut.sh): handle symlinks appropriately while using
+ '-i' option
+
+[[ -d $symlink ]] will return true if the symlink points to a directory.
+So the symlink will not be copied, instead a directory is created with
+the symlink name and the content is copied.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit c7fbc0c8901917baf0d1f0822568e65c6ec00d18)
+
+Cherry-picked from: c7fbc0c8
+Resolves: #1959336
+---
+ dracut.sh | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index 3fd31e21..fa14e3ce 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1609,8 +1609,8 @@ for ((i=0; i < ${#include_src[@]}; i++)); do
+             reset_dotglob="$(shopt -p dotglob)"
+             shopt -q -s dotglob
+             for objectname in "$src"/*; do
+-                [[ -e "$objectname" || -h "$objectname" ]] || continue
+-                if [[ -d "$objectname" ]]; then
++                [[ -e $objectname || -L $objectname ]] || continue
++                if [[ -d $objectname ]] && [[ ! -L $objectname ]]; then
+                     # objectname is a directory, let's compute the final directory name
+                     object_destdir=${destdir}/${objectname#$src/}
+                     if ! [[ -e "$object_destdir" ]]; then
+

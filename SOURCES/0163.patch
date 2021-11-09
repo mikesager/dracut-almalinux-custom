@@ -1,0 +1,23 @@
+From 1fd68d6bf5a8752eec83ac19e29df6832ba3c48f Mon Sep 17 00:00:00 2001
+From: Harald Hoyer <harald@redhat.com>
+Date: Thu, 11 Feb 2021 09:10:42 +0100
+Subject: [PATCH] fix: shellcheck for modules.d/99squash/setup-squash.sh
+
+(cherry picked from commit 836e2ffac6695201e334c8ef13488e2492b58db0)
+
+Resolves: #1959336
+---
+ modules.d/99squash/setup-squash.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/99squash/setup-squash.sh b/modules.d/99squash/setup-squash.sh
+index d0000b6f..253e6101 100755
+--- a/modules.d/99squash/setup-squash.sh
++++ b/modules.d/99squash/setup-squash.sh
+@@ -1,4 +1,4 @@
+-#!/bin/sh
++#!/bin/bash
+ PATH=/bin:/sbin
+ 
+ SQUASH_IMG=/squash/root.img
+

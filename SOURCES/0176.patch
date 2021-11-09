@@ -1,0 +1,51 @@
+From 0a2f7b1779ddcac1c4e79aa58212c7ee528ac6e1 Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Mon, 15 Feb 2021 23:15:26 +0800
+Subject: [PATCH] feat: squash module follow --compress option
+
+Try to make mksquashfs follow --compress option if squash module is
+included, if not specified or invalid, fall back to use mksquashfs's
+default compressor.
+
+(cherry picked from commit 5d05ffbd87bc27e27f517ebc3454d50729c687e6)
+
+Cherry-picked from: 5d05ffbd
+Resolves: #1959336
+---
+ dracut.sh | 17 ++++++++++++++---
+ 1 file changed, 14 insertions(+), 3 deletions(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index b403f401..d9a66c5a 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1781,14 +1781,25 @@ fi
+ 
+ if dracut_module_included "squash"; then
+     dinfo "*** Squashing the files inside the initramfs ***"
+-    mksquashfs $squash_dir $squash_img -no-xattrs -no-exports -noappend -always-use-fragments -comp xz -Xdict-size 100% -no-progress 1> /dev/null
++    declare squash_compress_arg
++    # shellcheck disable=SC2086
++    if [[ $compress ]]; then
++        if ! mksquashfs /dev/null "$DRACUT_TMPDIR"/.squash-test.img -no-progress -comp $compress &>/dev/null; then
++            dwarn "mksquashfs doesn't support compressor '$compress', failing back to default compressor."
++        else
++            squash_compress_arg="$compress"
++        fi
++    fi
+ 
+-    if [[ $? != 0 ]]; then
++    # shellcheck disable=SC2086
++    if ! mksquashfs "$squash_dir" "$squash_img" \
++        -no-xattrs -no-exports -noappend -no-recovery -always-use-fragments \
++        -no-progress ${squash_compress_arg:+-comp $squash_compress_arg} 1> /dev/null; then
+         dfatal "dracut: Failed making squash image"
+         exit 1
+     fi
+ 
+-    rm -rf $squash_dir
++    rm -rf "$squash_dir"
+     dinfo "*** Squashing the files inside the initramfs done ***"
+ fi
+ 
+

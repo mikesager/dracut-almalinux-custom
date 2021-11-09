@@ -1,0 +1,32 @@
+From 487d2686a78cfa52419b330fa2b62af715c4356b Mon Sep 17 00:00:00 2001
+From: Kairui Song <kasong@redhat.com>
+Date: Thu, 10 Jun 2021 16:45:03 +0800
+Subject: [PATCH] fix(squash): create relative symlinks
+
+Don't use absolute path, or it may resolve to wrong files after unpack
+the initramfs to a sub path on a running system.
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit a2b6be44792b68218e3378a7d844b0f8527a4805)
+
+Resolves: #1959336
+---
+ modules.d/99squash/module-setup.sh | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/modules.d/99squash/module-setup.sh b/modules.d/99squash/module-setup.sh
+index 9bb30b2e..8c9982c0 100644
+--- a/modules.d/99squash/module-setup.sh
++++ b/modules.d/99squash/module-setup.sh
+@@ -53,8 +53,8 @@ installpost() {
+     dracut_kernel_post
+ 
+     # Install squash image init script.
+-    ln -sfn /usr/bin "$initdir/bin"
+-    ln -sfn /usr/sbin "$initdir/sbin"
++    ln_r /usr/bin /bin
++    ln_r /usr/sbin /sbin
+     inst_simple "$moddir"/init-squash.sh /init
+ }
+ 
+
