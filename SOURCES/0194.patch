@@ -1,0 +1,24 @@
+From ccd2823f5b75273445c7de36ff306fd23163f955 Mon Sep 17 00:00:00 2001
+From: Masahiro Matsuya <mmatsuya@redhat.com>
+Date: Fri, 11 Jun 2021 10:40:04 +0900
+Subject: [PATCH] fix(url-lib): make pre-pivot hook separetely per nfs mount
+
+Resolves: rhbz#1967802
+---
+ modules.d/45url-lib/url-lib.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/45url-lib/url-lib.sh b/modules.d/45url-lib/url-lib.sh
+index 08c3ebb4..56d0d683 100755
+--- a/modules.d/45url-lib/url-lib.sh
++++ b/modules.d/45url-lib/url-lib.sh
+@@ -143,7 +143,7 @@ nfs_fetch_url() {
+         local mntdir="$(mkuniqdir /run nfs_mnt)"
+         mount_nfs "$nfs:$server:$filepath${options:+:$options}" "$mntdir"
+         # lazy unmount during pre-pivot hook
+-        inst_hook --hook pre-pivot --name 99url-lib-umount-nfs umount -l -- "$mntdir"
++        inst_hook --hook pre-pivot --name 99url-lib-umount-nfs-"$(basename "$mntdir")" umount -l -- "$mntdir"
+     fi
+ 
+     if [ -z "$outloc" ]; then
+

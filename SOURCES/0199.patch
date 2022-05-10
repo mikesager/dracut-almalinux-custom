@@ -1,0 +1,37 @@
+From 876196e809f4ffac055737921cfe273d8399b6e4 Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Renaud=20M=C3=A9trich?= <rmetrich@redhat.com>
+Date: Tue, 16 Nov 2021 11:15:52 +0100
+Subject: [PATCH] fix(shutdown): be robust against forced shutdown
+
+When a forced shutdown is issued through sending a burst of Ctrl-Alt-Del
+keys, systemd sends SIGTERM to all processes. This ends up killing
+dracut-initramfs-restore as well, preventing the script from detecting
+that the unpack of the initramfs is incomplete, which later causes a
+crash to happen when "shutdown" tries to execute from the unpacked
+initramfs.
+
+This fix makes sure dracut-initramfs-restore remains alive to detect
+the unpack failed (because cpio was killed by systemd too).
+
+Resolves: rhbz#2023665
+---
+ dracut-initramfs-restore.sh | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/dracut-initramfs-restore.sh b/dracut-initramfs-restore.sh
+index 74a952c4..708f98d7 100644
+--- a/dracut-initramfs-restore.sh
++++ b/dracut-initramfs-restore.sh
+@@ -6,6 +6,11 @@ set -e
+ [ -e /run/initramfs/bin/sh ] && exit 0
+ [ -e /run/initramfs/.need_shutdown ] || exit 0
+ 
++# SIGTERM signal is received upon forced shutdown: ignore the signal
++# We want to remain alive to be able to trap unpacking errors to avoid
++# switching root to an incompletely unpacked initramfs
++trap 'echo "Received SIGTERM signal, ignoring!" >&2' TERM
++
+ KERNEL_VERSION="$(uname -r)"
+ 
+ [[ $dracutbasedir ]] || dracutbasedir=/usr/lib/dracut
+

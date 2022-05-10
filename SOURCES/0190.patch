@@ -56,3 +56,4 @@ index baf6dcff..4962316d 100644
          if (dracut_install(clib, clib, false, false, true) == 0)
                  log_debug("Lib install: '%s'", clib);
          /* also install lib.so for lib.so.* files */
+

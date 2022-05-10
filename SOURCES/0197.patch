@@ -1,0 +1,54 @@
+From 0a6125bf834c5a1808e4898f46093bc2ab2fed05 Mon Sep 17 00:00:00 2001
+From: Harald Hoyer <harald@redhat.com>
+Date: Wed, 23 Oct 2019 14:16:56 +0200
+Subject: [PATCH] dracut.sh: add check for invalid configuration files
+
+Emit a warning about possible misconfigured configuration files, where
+the spaces around values are missing for +=""
+
+Better report a possible source of problems. We can fix annoying false
+positives later.
+
+(cherry picked from commit dfe2247a43d6a216d9af533825c9a103e3b056cd)
+
+Resolves: #1946245
+---
+ dracut.sh | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index 952c57c8..702b2f78 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -277,6 +277,14 @@ read_arg() {
+     fi
+ }
+ 
++check_conf_file()
++{
++    if grep -H -e '^[^#]*[+]=\("[^ ]\|.*[^ ]"\)' "$@"; then
++        printf '\ndracut: WARNING: <key>+=" <values> ": <values> should have surrounding white spaces!\n' >&2
++        printf 'dracut: WARNING: This will lead to unwanted side effects! Please fix the configuration file.\n\n' >&2
++    fi
++}
++
+ dropindirs_sort()
+ {
+     local suffix=$1; shift
+@@ -697,10 +705,14 @@ if [[ ! -d $confdir ]]; then
+ fi
+ 
+ # source our config file
+-[[ -f $conffile ]] && . "$conffile"
++if [[ -f $conffile ]]; then
++    check_conf_file "$conffile"
++    . "$conffile"
++fi
+ 
+ # source our config dir
+ for f in $(dropindirs_sort ".conf" "$confdir" "$dracutbasedir/dracut.conf.d"); do
++    check_conf_file "$f"
+     [[ -e $f ]] && . "$f"
+ done
+ 
+

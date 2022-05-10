@@ -1,0 +1,68 @@
+From c7b21c88d27aace097ce9bc1fc36f4b742858737 Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Mon, 22 Nov 2021 16:40:39 +0100
+Subject: [PATCH] fix(network): add errors and warnings when network interface
+ does not exist
+
+End with error, or show a warning when nonexistent device is specified for network setup like
+`ip=10.12.8.12::10.12.255.254:255.255.0.0:xk12:eth0:off`.
+
+I've added the error only for `write-ifcfg.sh`, as I think no such setup should be written.
+
+Resolves: #1712424
+---
+ modules.d/35network-legacy/ifup.sh          | 6 +++++-
+ modules.d/35network-legacy/parse-ip-opts.sh | 5 +++++
+ modules.d/45ifcfg/write-ifcfg.sh            | 5 +++++
+ 3 files changed, 15 insertions(+), 1 deletion(-)
+
+diff --git a/modules.d/35network-legacy/ifup.sh b/modules.d/35network-legacy/ifup.sh
+index bd560379..0e9a6928 100755
+--- a/modules.d/35network-legacy/ifup.sh
++++ b/modules.d/35network-legacy/ifup.sh
+@@ -413,7 +413,11 @@ for p in $(getargs ip=); do
+ 
+     # If this option isn't directed at our interface, skip it
+     if [ -n "$dev" ]; then
+-        [ "$dev" != "$netif" ] && continue
++        if [ "$dev" != "$netif" ]; then
++            [ ! -e "/sys/class/net/$dev" ] \
++                && warn "Network interface '$dev' does not exist!"
++            continue
++        fi
+     else
+         iface_is_enslaved "$netif" && continue
+     fi
+diff --git a/modules.d/35network-legacy/parse-ip-opts.sh b/modules.d/35network-legacy/parse-ip-opts.sh
+index 10a2d19b..eea0988c 100755
+--- a/modules.d/35network-legacy/parse-ip-opts.sh
++++ b/modules.d/35network-legacy/parse-ip-opts.sh
+@@ -96,6 +96,11 @@ for p in $(getargs ip=); do
+         fi
+         # IFACES list for later use
+         IFACES="$IFACES $dev"
++
++        # Interface should exist
++        if [ ! -e "/sys/class/net/$dev" ]; then
++            warn "Network interface '$dev' does not exist"
++        fi
+     fi
+ 
+     # Do we need to check for specific options?
+diff --git a/modules.d/45ifcfg/write-ifcfg.sh b/modules.d/45ifcfg/write-ifcfg.sh
+index abd111fc..7e767f15 100755
+--- a/modules.d/45ifcfg/write-ifcfg.sh
++++ b/modules.d/45ifcfg/write-ifcfg.sh
+@@ -100,6 +100,11 @@ interface_bind() {
+     local _netif="$1"
+     local _macaddr="$2"
+ 
++    if [ ! -e "/sys/class/net/$_netif" ]; then
++        derror "Cannot find network interface '$_netif'!"
++        return 1
++    fi
++
+     # see, if we can bind it to some hw parms
+     if hw_bind "$_netif" "$_macaddr"; then
+         # only print out DEVICE, if it's user assigned
+

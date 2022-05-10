@@ -1,0 +1,57 @@
+From fd907a1b2b1f087afa2eccfa1686043e4dbb5ff6 Mon Sep 17 00:00:00 2001
+From: q66 <daniel@octaforge.org>
+Date: Sat, 25 Jul 2020 17:28:16 +0200
+Subject: [PATCH] dracut.sh: fix early microcode detection logic
+
+This fixes two issues:
+
+1) on non-x86 systems in non-hostonly config this would cause
+   an annoying warning on every initramfs generation
+2) on non-x86 systems in hostonly config this would result in
+   early microcode not getting disabled
+
+Resolves: rhbz#2022414
+---
+ dracut.sh | 23 +++++++++++++++--------
+ 1 file changed, 15 insertions(+), 8 deletions(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index e559bb96..952c57c8 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1070,19 +1070,26 @@ fi
+ 
+ if [[ $early_microcode = yes ]]; then
+     if [[ $hostonly ]]; then
+-        [[ $(get_cpu_vendor) == "AMD" ]] \
+-            && ! check_kernel_config CONFIG_MICROCODE_AMD \
+-            && unset early_microcode
+-        [[ $(get_cpu_vendor) == "Intel" ]] \
+-            && ! check_kernel_config CONFIG_MICROCODE_INTEL \
+-            && unset early_microcode
++        if [[ $(get_cpu_vendor) == "AMD" ]]; then
++            check_kernel_config CONFIG_MICROCODE_AMD || unset early_microcode
++        elif [[ $(get_cpu_vendor) == "Intel" ]]; then
++            check_kernel_config CONFIG_MICROCODE_INTEL || unset early_microcode
++        else
++            unset early_microcode
++        fi
+     else
+         ! check_kernel_config CONFIG_MICROCODE_AMD \
+             && ! check_kernel_config CONFIG_MICROCODE_INTEL \
+             && unset early_microcode
+     fi
+-    [[ $early_microcode != yes ]] \
+-        && dwarn "Disabling early microcode, because kernel does not support it. CONFIG_MICROCODE_[AMD|INTEL]!=y"
++    # Do not complain on non-x86 architectures as it makes no sense
++    case $(uname -m) in
++        x86_64|i?86)
++            [[ $early_microcode != yes ]] \
++                && dwarn "Disabling early microcode, because kernel does not support it. CONFIG_MICROCODE_[AMD|INTEL]!=y"
++            ;;
++        *) ;;
++    esac
+ fi
+ 
+ # Need to be able to have non-root users read stuff (rpcbind etc)
+

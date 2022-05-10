@@ -5,7 +5,7 @@
 # strip the automatically generated dep here and instead co-own the
 # directory.
 %global __requires_exclude pkg-config
-%define dist_free_release 191.git20210920
+%define dist_free_release 201.git20220131
 
 Name: dracut
 Version: 049
@@ -218,6 +218,16 @@ Patch187: 0187.patch
 Patch188: 0188.patch
 Patch189: 0189.patch
 Patch190: 0190.patch
+Patch191: 0191.patch
+Patch192: 0192.patch
+Patch193: 0193.patch
+Patch194: 0194.patch
+Patch195: 0195.patch
+Patch196: 0196.patch
+Patch197: 0197.patch
+Patch198: 0198.patch
+Patch199: 0199.patch
+Patch200: 0200.patch
 
 Source1: https://www.gnu.org/licenses/lgpl-2.1.txt
 
@@ -670,6 +680,18 @@ echo '# Since rhel-8.3 dracut moved to use NetworkManager
 add_dracutmodules+=" network-legacy "' > /etc/dracut.conf.d/50-network-legacy.conf
 
 %changelog
+* Mon Jan 31 2022 Pavel Valena <pvalena@redhat.com> - 049-201.git20220131
+- ci: introduce C8S based GHA CI
+- ci: backport TEST-21-NFS-NM
+- dracut.sh: fix early microcode detection logic
+- fix(url-lib): make pre-pivot hook separetely per nfs mount
+- fix(watchdog): replace return with echo
+- fix(network): add errors and warnings when network interface
+- dracut.sh: add check for invalid configuration files
+- fips: removed false-positive 'FATAL: Module xxx not found'
+- fix(shutdown): be robust against forced shutdown
+- fix(fips): handle s390x OSTree systems
+
 * Mon Sep 20 2021 Lukas Nykryn <lnykryn@redhat.com> - 049-191.git20210920
 - fix(install): extend hwcaps library handling to libraries
 

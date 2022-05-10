@@ -1,0 +1,84 @@
+From f5ffe8bc95ee989ef39b7c149d268b5988f952a0 Mon Sep 17 00:00:00 2001
+From: Jonathan Lebon <jonathan@jlebon.com>
+Date: Thu, 17 Jun 2021 10:47:33 -0400
+Subject: [PATCH] fix(fips): handle s390x OSTree systems
+
+On s390x, the `BOOT_IMAGE` karg injected by the bootloader is not a path
+to the kernel image, but rather an integer describing the index of the
+menu entry selected. Because of the way the s390x bootloader works,
+there is no information retained about e.g. the path of the kernel that
+was loaded.
+
+This causes issues for the FIPS code which assumes that `BOOT_IMAGE` is
+a path to the kernel image to derive the HMAC path. In non-OSTree
+systems, this ends up working anyway, because the kernel is located at
+the root of the boot partition.  In OSTree systems, this is not the
+case. However, OSTree systems use BLS configs, and they are named in
+reverse order of precedence (i.e. menu ordering). So from the
+`BOOT_IMAGE` integer, we can figure out which BLS entry was selected.
+
+Add some code to do just this on s390x. This isn't completely foolproof,
+because it presumes that (1) BLS configs were used to populate the
+bootloader (and that they were exactly in the same state they currently
+are when `zipl` was run), and (2) there are no other menu entries
+originating from outside the BLS configs. However, if these assumptions
+are wrong we would simply fail the boot, which is currently what is
+happening anyway.
+
+See also:
+https://github.com/openshift/os/pull/546
+https://github.com/ibm-s390-linux/s390-tools/issues/78
+
+Tested-by: Muhammad Adeel <muhammad.adeel@ibm.com>
+
+Resolves: rhbz#2007586
+---
+ modules.d/01fips/fips.sh         | 21 +++++++++++++++++++++
+ modules.d/01fips/module-setup.sh |  2 +-
+ 2 files changed, 22 insertions(+), 1 deletion(-)
+
+diff --git a/modules.d/01fips/fips.sh b/modules.d/01fips/fips.sh
+index 1d57a889..c57fd426 100755
+--- a/modules.d/01fips/fips.sh
++++ b/modules.d/01fips/fips.sh
+@@ -114,6 +114,27 @@ do_fips()
+     else
+         BOOT_IMAGE="$(getarg BOOT_IMAGE)"
+ 
++        # On s390x, BOOT_IMAGE isn't a path but an integer representing the
++        # entry number selected. Let's try the root of /boot first, and
++        # otherwise fallback to trying to parse the BLS entries if it's a
++        # BLS-based system.
++        if [ "$(uname -m)" = s390x ]; then
++            if [ -e "/boot/vmlinuz-${KERNEL}" ]; then
++                BOOT_IMAGE="vmlinuz-${KERNEL}"
++            elif [ -d /boot/loader/entries ]; then
++                i=0
++                for bls in $(ls -d /boot/loader/entries/*.conf | sort -rV); do
++                  ((i++))
++
++                  if [ $i -eq ${BOOT_IMAGE:-0} ] && [ -r "$bls" ]; then
++                      BOOT_IMAGE="$(grep -e '^linux' "$bls" | grep -o ' .*$')"
++                      BOOT_IMAGE=${BOOT_IMAGE:1}
++                      break
++                  fi
++                done
++            fi
++        fi
++
+         # Trim off any leading GRUB boot device (e.g. ($root) )
+         BOOT_IMAGE="$(echo "${BOOT_IMAGE}" | sed 's/^(.*)//')"
+ 
+diff --git a/modules.d/01fips/module-setup.sh b/modules.d/01fips/module-setup.sh
+index 8800a49e..71bea53a 100755
+--- a/modules.d/01fips/module-setup.sh
++++ b/modules.d/01fips/module-setup.sh
+@@ -67,7 +67,7 @@ install() {
+     inst_hook pre-udev 01 "$moddir/fips-load-crypto.sh"
+     inst_script "$moddir/fips.sh" /sbin/fips.sh
+ 
+-    inst_multiple sha512hmac rmmod insmod mount uname umount
++    inst_multiple sha512hmac rmmod insmod mount uname umount grep sort
+ 
+     inst_simple /etc/system-fips
+     [ -c ${initdir}/dev/random ] || mknod ${initdir}/dev/random c 1 8 \

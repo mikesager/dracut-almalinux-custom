@@ -1,0 +1,78 @@
+From 436135496469ec24be1fc6fbc03a39d2575c8686 Mon Sep 17 00:00:00 2001
+From: Frantisek Sumsal <frantisek@sumsal.cz>
+Date: Sat, 13 Nov 2021 17:55:45 +0100
+Subject: [PATCH] ci: backport TEST-21-NFS-NM
+
+Loosely cherry-picked from a3f73298f287e75810d6784efa52e80af15da2bd.
+
+rhel-only
+---
+ .github/workflows/integration.yml |  3 +--
+ test/TEST-20-NFS/test.sh          | 14 +++++++++++---
+ test/TEST-21-NFS-NM/Makefile      | 12 ++++++++++++
+ 3 files changed, 24 insertions(+), 5 deletions(-)
+
+diff --git a/.github/workflows/integration.yml b/.github/workflows/integration.yml
+index 80a856a2..9c7c8486 100644
+--- a/.github/workflows/integration.yml
++++ b/.github/workflows/integration.yml
+@@ -29,9 +29,8 @@ jobs:
+                         "13",
+                         "17",
+                         "20",
+-                        #"21", needs backport (NFS + NM)
++                        "21",
+                         "40",
+-                        #"41", needws backport (NBD + NM)
+                         "98",
+                 ]
+             fail-fast: false
+diff --git a/test/TEST-20-NFS/test.sh b/test/TEST-20-NFS/test.sh
+index 4ad7fd77..320f9c3e 100755
+--- a/test/TEST-20-NFS/test.sh
++++ b/test/TEST-20-NFS/test.sh
+@@ -1,5 +1,13 @@
+ #!/bin/bash
+-TEST_DESCRIPTION="root filesystem on NFS"
++if [[ $NM ]]; then
++    USE_NETWORK="network-manager"
++    OMIT_NETWORK="network-legacy"
++else
++    USE_NETWORK="network-legacy"
++    OMIT_NETWORK="network-manager"
++fi
++
++TEST_DESCRIPTION="root filesystem on NFS with $USE_NETWORK"
+ 
+ KVERSION=${KVERSION-$(uname -r)}
+ 
+@@ -353,8 +361,8 @@ test_setup() {
+ 
+     # Make client's dracut image
+     $basedir/dracut.sh -l -i $TESTDIR/overlay / \
+-        -o "plymouth dash" \
+-        -a "debug watchdog" \
++        -o "plymouth dash ${OMIT_NETWORK}" \
++        -a "debug watchdog ${USE_NETWORK}" \
+         -d "af_packet piix ide-gd_mod ata_piix sd_mod e1000 nfs sunrpc i6300esb" \
+         --no-hostonly-cmdline -N \
+         -f $TESTDIR/initramfs.testing $KVERSION || return 1
+diff --git a/test/TEST-21-NFS-NM/Makefile b/test/TEST-21-NFS-NM/Makefile
+new file mode 100644
+index 00000000..b19122a1
+--- /dev/null
++++ b/test/TEST-21-NFS-NM/Makefile
+@@ -0,0 +1,12 @@
++.PHONY: all setup clean run
++
++BASETEST=../TEST-20-NFS
++
++all:
++	@$(MAKE) NM=1 -s --no-print-directory -C $(BASETEST) all
++setup:
++	@$(MAKE) NM=1 -s --no-print-directory -C $(BASETEST) setup
++clean:
++	@$(MAKE) NM=1 -s --no-print-directory -C $(BASETEST) clean
++run:
++	@$(MAKE) NM=1 -s --no-print-directory -C $(BASETEST) run
+
