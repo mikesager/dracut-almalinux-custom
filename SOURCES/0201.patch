@@ -1,0 +1,33 @@
+From d7c2342fb26a52142ce1fb9b10b636565aba7780 Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Mon, 2 May 2022 20:12:25 +0200
+Subject: [PATCH] fix(fips): start iterating from 0 over BOOT_IMAGE entries
+
+as the code contains a bug which sets default 0, but iterates from 1.
+Correct approach is indexing from 0.
+
+https://github.com/redhat-plumbers/dracut-rhel8/pull/9
+---
+ modules.d/01fips/fips.sh | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/modules.d/01fips/fips.sh b/modules.d/01fips/fips.sh
+index c57fd426..e8952489 100755
+--- a/modules.d/01fips/fips.sh
++++ b/modules.d/01fips/fips.sh
+@@ -124,13 +124,13 @@ do_fips()
+             elif [ -d /boot/loader/entries ]; then
+                 i=0
+                 for bls in $(ls -d /boot/loader/entries/*.conf | sort -rV); do
+-                  ((i++))
+-
+                   if [ $i -eq ${BOOT_IMAGE:-0} ] && [ -r "$bls" ]; then
+                       BOOT_IMAGE="$(grep -e '^linux' "$bls" | grep -o ' .*$')"
+                       BOOT_IMAGE=${BOOT_IMAGE:1}
+                       break
+                   fi
++
++                  ((i++))
+                 done
+             fi
+         fi

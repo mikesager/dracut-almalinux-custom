@@ -5,7 +5,7 @@
 # strip the automatically generated dep here and instead co-own the
 # directory.
 %global __requires_exclude pkg-config
-%define dist_free_release 201.git20220131
+%define dist_free_release 202.git20220511
 
 Name: dracut
 Version: 049
@@ -228,6 +228,7 @@ Patch197: 0197.patch
 Patch198: 0198.patch
 Patch199: 0199.patch
 Patch200: 0200.patch
+Patch201: 0201.patch
 
 Source1: https://www.gnu.org/licenses/lgpl-2.1.txt
 
@@ -680,6 +681,9 @@ echo '# Since rhel-8.3 dracut moved to use NetworkManager
 add_dracutmodules+=" network-legacy "' > /etc/dracut.conf.d/50-network-legacy.conf
 
 %changelog
+* Wed May 11 2022 Pavel Valena <pvalena@redhat.com> - 049-202.git20220511
+- fix(fips): start iterating from 0 over BOOT_IMAGE entries
+
 * Mon Jan 31 2022 Pavel Valena <pvalena@redhat.com> - 049-201.git20220131
 - ci: introduce C8S based GHA CI
 - ci: backport TEST-21-NFS-NM
