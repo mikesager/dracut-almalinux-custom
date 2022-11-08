@@ -1,0 +1,54 @@
+From 9914a76e5748beae9662a0e44b1674249b778424 Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Mon, 15 Aug 2022 10:44:35 +0200
+Subject: [PATCH] ci: check out .shellcheckrc from upstream
+
+To avoid ShellCheck false positives.
+
+https://github.com/redhat-plumbers/dracut-rhel8/pull/18
+
+rhel-only
+---
+ .shellcheckrc | 34 ++++++++++++++++++++++++++++++++++
+ 1 file changed, 34 insertions(+)
+
+diff --git a/.shellcheckrc b/.shellcheckrc
+new file mode 100644
+index 00000000..ce5c883b
+--- /dev/null
++++ b/.shellcheckrc
+@@ -0,0 +1,34 @@
++# SC2039: In POSIX sh, 'local' is undefined.
++# https://github.com/koalaman/shellcheck/wiki/SC2039
++disable=SC2039
++
++# SC2166: Prefer [ p ] || [ q ] as [ p -o q ] is not well defined.
++# https://github.com/koalaman/shellcheck/wiki/SC2166
++disable=SC2166
++
++# SC2154: Variable is referenced but not assigned
++# https://github.com/koalaman/shellcheck/wiki/SC2154
++disable=SC2154
++
++# SC1091: Not following <file>
++# https://github.com/koalaman/shellcheck/wiki/SC1091
++disable=SC1091
++
++# SC2174: When used with -p, -m only applies to the deepest directory.
++# https://github.com/koalaman/shellcheck/wiki/SC2174
++disable=SC2174
++
++# SC3043: In POSIX sh, 'local' is undefined.
++# https://github.com/koalaman/shellcheck/wiki/SC3043
++# ... but dash supports it
++disable=SC3043
++
++# SC3013: In POSIX sh, -ef is undefined.
++# https://github.com/koalaman/shellcheck/wiki/SC3013
++# ... but dash supports it
++disable=SC3013
++
++# SC3045: In POSIX sh, read -p is undefined.
++# https://github.com/koalaman/shellcheck/wiki/SC3045
++# ... but dash supports it
++disable=SC3045

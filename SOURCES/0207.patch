@@ -1,0 +1,90 @@
+From ec2e4e70a1037b2df535e48ef7389b7b76b5a29a Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Renaud=20M=C3=A9trich?= <rmetrich@redhat.com>
+Date: Thu, 13 Jan 2022 17:35:59 +0100
+Subject: [PATCH] fix(dracut-shutdown): add cleanup handler on failure
+
+It may happen that dracut-shutdown.service fails, for example on timeout
+due to very low bandwidth.
+In such case, for hardening purposes, a new dracut-shutdown-onfailure.service
+unit doing dracut-shutdown.service cleanup needs to execute to make sure
+switching root to an incomplete initramfs won't occur later.
+
+Resolves: #1924587
+---
+ Makefile                                                    |  1 +
+ dracut.spec                                                 |  1 +
+ .../98dracut-systemd/dracut-shutdown-onfailure.service      | 13 +++++++++++++
+ modules.d/98dracut-systemd/dracut-shutdown.service          |  1 +
+ modules.d/98dracut-systemd/dracut-shutdown.service.8.asc    |  3 +++
+ 5 files changed, 19 insertions(+)
+
+diff --git a/Makefile b/Makefile
+index 503d069f..1c0f48ad 100644
+--- a/Makefile
++++ b/Makefile
+@@ -142,6 +142,7 @@ ifneq ($(enable_documentation),no)
+ endif
+ 	if [ -n "$(systemdsystemunitdir)" ]; then \
+ 		mkdir -p $(DESTDIR)$(systemdsystemunitdir); \
++		ln -srf $(DESTDIR)$(pkglibdir)/modules.d/98dracut-systemd/dracut-shutdown-onfailure.service $(DESTDIR)$(systemdsystemunitdir)/dracut-shutdown-onfailure.service; \
+ 		ln -srf $(DESTDIR)$(pkglibdir)/modules.d/98dracut-systemd/dracut-shutdown.service $(DESTDIR)$(systemdsystemunitdir)/dracut-shutdown.service; \
+ 		mkdir -p $(DESTDIR)$(systemdsystemunitdir)/sysinit.target.wants; \
+ 		ln -s ../dracut-shutdown.service \
+diff --git a/dracut.spec b/dracut.spec
+index e1c22256..90fa903a 100644
+--- a/dracut.spec
++++ b/dracut.spec
+@@ -404,6 +404,7 @@ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/
+ %dir %{_sharedstatedir}/initramfs
+ %if %{defined _unitdir}
+ %{_unitdir}/dracut-shutdown.service
++%{_unitdir}/dracut-shutdown-onfailure.service
+ %{_unitdir}/sysinit.target.wants/dracut-shutdown.service
+ %{_unitdir}/dracut-cmdline.service
+ %{_unitdir}/dracut-initqueue.service
+diff --git a/modules.d/98dracut-systemd/dracut-shutdown-onfailure.service b/modules.d/98dracut-systemd/dracut-shutdown-onfailure.service
+new file mode 100644
+index 00000000..96de58c5
+--- /dev/null
++++ b/modules.d/98dracut-systemd/dracut-shutdown-onfailure.service
+@@ -0,0 +1,13 @@
++#  This file is part of dracut.
++#
++# See dracut.bootup(7) for details
++
++[Unit]
++Description=Service executing upon dracut-shutdown failure to perform cleanup
++Documentation=man:dracut-shutdown.service(8)
++DefaultDependencies=no
++
++[Service]
++Type=oneshot
++ExecStart=-/bin/rm /run/initramfs/shutdown
++StandardError=null
+diff --git a/modules.d/98dracut-systemd/dracut-shutdown.service b/modules.d/98dracut-systemd/dracut-shutdown.service
+index b7324586..dd4cf81e 100644
+--- a/modules.d/98dracut-systemd/dracut-shutdown.service
++++ b/modules.d/98dracut-systemd/dracut-shutdown.service
+@@ -8,6 +8,7 @@ Documentation=man:dracut-shutdown.service(8)
+ After=local-fs.target boot.mount boot.automount
+ Wants=local-fs.target
+ ConditionPathExists=!/run/initramfs/bin/sh
++OnFailure=dracut-shutdown-onfailure.service
+ 
+ [Service]
+ RemainAfterExit=yes
+diff --git a/modules.d/98dracut-systemd/dracut-shutdown.service.8.asc b/modules.d/98dracut-systemd/dracut-shutdown.service.8.asc
+index ba80b187..21ec88ca 100644
+--- a/modules.d/98dracut-systemd/dracut-shutdown.service.8.asc
++++ b/modules.d/98dracut-systemd/dracut-shutdown.service.8.asc
+@@ -40,6 +40,9 @@ by injecting "rd.break=pre-shutdown rd.shell" or "rd.break=shutdown rd.shell".
+ # touch /run/initramfs/.need_shutdown
+ ----
+ 
++In case the unpack of the initramfs fails, dracut-shutdown-onfailure.service
++executes to make sure switch root doesn't happen, since it would result in
++switching to an incomplete initramfs.
+ 
+ AUTHORS
+ -------
+

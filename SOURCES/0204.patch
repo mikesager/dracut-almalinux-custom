@@ -1,0 +1,55 @@
+From 93b0bbd54736259792ca77746ac8a6440c3ccd39 Mon Sep 17 00:00:00 2001
+From: The Plumber <50238977+systemd-rhel-bot@users.noreply.github.com>
+Date: Thu, 11 Aug 2022 09:49:54 +0200
+Subject: [PATCH] (#1933679) 95iscsi: Fix network setup
+
+* 95iscsi: Fix network setup code for iscsi
+
+- The network script and config could be in
+  "/etc/sysconfig/network-scripts", so try look for network config in
+  all possible path.
+
+- The regex used for sed is not working, so fix it too.
+
+- Make bootproto a local variable
+
+* Update modules.d/95iscsi/module-setup.sh
+
+Signed-off-by: Kairui Song <kasong@redhat.com>
+(cherry picked from commit 7b76fa924dfd20d3fd4433baa8292f0112282aac)
+
+Resolves: #1933679
+---
+ modules.d/95iscsi/module-setup.sh | 11 +++++++++--
+ 1 file changed, 9 insertions(+), 2 deletions(-)
+
+diff --git a/modules.d/95iscsi/module-setup.sh b/modules.d/95iscsi/module-setup.sh
+index 618d1dc2..5bb97df6 100755
+--- a/modules.d/95iscsi/module-setup.sh
++++ b/modules.d/95iscsi/module-setup.sh
+@@ -72,6 +72,7 @@ install_iscsiroot() {
+     local devpath=$1
+     local scsi_path iscsi_lun session c d conn host flash
+     local iscsi_session iscsi_address iscsi_port iscsi_targetname iscsi_tpgt
++    local bootproto
+ 
+     scsi_path=${devpath%%/block*}
+     [ "$scsi_path" = "$devpath" ] && return 1
+@@ -120,8 +121,14 @@ install_iscsiroot() {
+     local_address=$(ip -o route get to $iscsi_address | sed -n 's/.*src \([0-9a-f.:]*\).*/\1/p')
+     ifname=$(ip -o route get to $iscsi_address | sed -n 's/.*dev \([^ ]*\).*/\1/p')
+ 
+-    #follow ifcfg settings for boot protocol
+-    bootproto=$(sed -n "/BOOTPROTO/s/BOOTPROTO='\([[:alpha:]]*6\?\)4\?'/\1/p" /etc/sysconfig/network/ifcfg-$ifname)
++    # follow ifcfg settings for boot protocol
++    for _path in \
++        "/etc/sysconfig/network-scripts/ifcfg-$ifname" \
++        "/etc/sysconfig/network/ifcfg-$ifname" \
++    ; do
++        [ -r "$_path" ] && bootproto=$(sed -n "s/BOOTPROTO='\?\([[:alpha:]]*6\?\)4\?/\1/p" "$_path")
++    done
++
+     if [ $bootproto ]; then
+         printf 'ip=%s:%s ' ${ifname} ${bootproto}
+     else
+

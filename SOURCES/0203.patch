@@ -1,0 +1,26 @@
+From f7663f39ea7858e08597694da329c1c94e778060 Mon Sep 17 00:00:00 2001
+From: Jan Macku <jamacku@redhat.com>
+Date: Thu, 23 Jun 2022 13:25:09 +0200
+Subject: [PATCH] (#2054725) ci: Use Differential ShellCheck action `v2`
+
+differential-shellcheck@v2 uses SARIF format that drastically
+improves user experience.
+
+Related: #2054725
+---
+ .github/workflows/differential-shellcheck.yml | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/.github/workflows/differential-shellcheck.yml b/.github/workflows/differential-shellcheck.yml
+index b8b10eaa..55273b3d 100644
+--- a/.github/workflows/differential-shellcheck.yml
++++ b/.github/workflows/differential-shellcheck.yml
+@@ -14,4 +14,6 @@ jobs:
+           fetch-depth: 0
+ 
+       - name: Differential ShellCheck
+-        uses: redhat-plumbers-in-action/differential-shellcheck@v1
++        uses: redhat-plumbers-in-action/differential-shellcheck@v2
++        with:
++          token: ${{ secrets.GITHUB_TOKEN }}
+

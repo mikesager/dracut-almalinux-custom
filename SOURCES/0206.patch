@@ -1,0 +1,140 @@
+From d5027d43ea3969426ba64423b3c0bb38491cc880 Mon Sep 17 00:00:00 2001
+From: Tao Liu <ltao@redhat.com>
+Date: Fri, 10 Jun 2022 16:39:31 +0800
+Subject: [PATCH] feat(lvm): add new module lvmthinpool-monitor
+
+Previously dracut didn't support the feature of lvm thinpool autoextend.
+
+The feature is useful to cases such as kdump, when vmcore to be saved to a
+lvm thin volume. The thinpool should be able to autoextend, otherwise an
+IO error will be caused and leaves an incomplete vmcore.
+
+There is lvm2-monitor.service and dmeventd avaliable, however
+considering [1], it is not suitable for kdump and memory limited cases.
+
+This patch achieves the same by parallel looping a shell function in the
+background, which calls lvextend periodically. If thredshold reaches,
+autoextend it, if not then nothing happens.
+
+[1]: https://lists.fedoraproject.org/archives/list/kexec@lists.fedoraproject.org/message/YF254ZO3PJ3U56P4OKHV3JNYP2PJUMYX/
+
+Signed-off-by: Tao Liu <ltao@redhat.com>
+
+Resolves: #2098502
+---
+ dracut.spec                                        |  1 +
+ modules.d/80lvmthinpool-monitor/module-setup.sh    | 24 +++++++++++++
+ .../start-thinpool-monitor.service                 | 14 ++++++++
+ .../start-thinpool-monitor.sh                      | 41 ++++++++++++++++++++++
+ 4 files changed, 80 insertions(+)
+
+diff --git a/dracut.spec b/dracut.spec
+index c8783699..e1c22256 100644
+--- a/dracut.spec
++++ b/dracut.spec
+@@ -350,6 +350,7 @@ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/
+ %{dracutlibdir}/modules.d/50drm
+ %{dracutlibdir}/modules.d/50plymouth
+ %{dracutlibdir}/modules.d/80lvmmerge
++%{dracutlibdir}/modules.d/80lvmthinpool-monitor
+ %{dracutlibdir}/modules.d/90btrfs
+ %{dracutlibdir}/modules.d/90crypt
+ %{dracutlibdir}/modules.d/90dm
+diff --git a/modules.d/80lvmthinpool-monitor/module-setup.sh b/modules.d/80lvmthinpool-monitor/module-setup.sh
+new file mode 100755
+index 00000000..ca015bdc
+--- /dev/null
++++ b/modules.d/80lvmthinpool-monitor/module-setup.sh
+@@ -0,0 +1,24 @@
++#!/bin/bash
++
++# called by dracut
++check() {
++    # No point trying to support lvm if the binaries are missing
++    require_binaries lvm sort tr awk || return 1
++
++    return 255
++}
++
++# called by dracut
++depends() {
++    echo lvm
++    return 0
++}
++
++# called by dracut
++install() {
++    inst_multiple sort tr awk
++    inst_script "$moddir/start-thinpool-monitor.sh" "/bin/start-thinpool-monitor"
++
++    inst "$moddir/start-thinpool-monitor.service" "$systemdsystemunitdir/start-thinpool-monitor.service"
++    $SYSTEMCTL -q --root "$initdir" add-wants initrd.target start-thinpool-monitor.service
++}
+diff --git a/modules.d/80lvmthinpool-monitor/start-thinpool-monitor.service b/modules.d/80lvmthinpool-monitor/start-thinpool-monitor.service
+new file mode 100644
+index 00000000..97f5f1f4
+--- /dev/null
++++ b/modules.d/80lvmthinpool-monitor/start-thinpool-monitor.service
+@@ -0,0 +1,14 @@
++[Unit]
++Description=Lvm thinpool monitor service
++Before=initrd.target
++After=initrd-fs.target
++Conflicts=shutdown.target emergency.target
++
++[Service]
++Type=forking
++ExecStart=/bin/start-thinpool-monitor
++PIDFile=/run/thinpool-moni.pid
++StandardInput=null
++StandardOutput=journal+console
++StandardError=journal+console
++KillSignal=SIGHUP
+diff --git a/modules.d/80lvmthinpool-monitor/start-thinpool-monitor.sh b/modules.d/80lvmthinpool-monitor/start-thinpool-monitor.sh
+new file mode 100755
+index 00000000..75d8eada
+--- /dev/null
++++ b/modules.d/80lvmthinpool-monitor/start-thinpool-monitor.sh
+@@ -0,0 +1,41 @@
++#!/bin/sh
++
++type getarg > /dev/null 2>&1 || . /lib/dracut-lib.sh
++
++LVS=$(getargs rd.lvm.lv -d rd_LVM_LV=)
++
++is_lvm2_thinp_device() {
++    _device_path=$1
++    _lvm2_thin_device=$(lvm lvs -S 'lv_layout=sparse && lv_layout=thin' \
++        --nosuffix --noheadings -o vg_name,lv_name "$_device_path" 2> /dev/null)
++
++    [ -n "$_lvm2_thin_device" ] && return $?
++}
++
++for LV in $LVS; do
++    if is_lvm2_thinp_device "/dev/$LV"; then
++        THIN_POOLS="$(lvm lvs -S 'lv_layout=sparse && lv_layout=thin' \
++            --nosuffix --noheadings -o vg_name,pool_lv "$LV" \
++            | awk '{printf("%s/%s",$1,$2);}') $THIN_POOLS"
++    fi
++done
++
++THIN_POOLS=$(echo "$THIN_POOLS" | tr ' ' '\n' | sort -u | tr '\n' ' ')
++
++if [ -n "$THIN_POOLS" ]; then
++    if [ -e "/etc/lvm/lvm.conf" ]; then
++        # Use 'monitoring=0' to override the value in lvm.conf, in case
++        # dmeventd monitoring been started after the calling.
++        CONFIG="activation {monitoring=0}"
++    else
++        CONFIG="activation {monitoring=0 thin_pool_autoextend_threshold=70 thin_pool_autoextend_percent=20}"
++    fi
++
++    while true; do
++        for THIN_POOL in $THIN_POOLS; do
++            lvm lvextend --use-policies --config "$CONFIG" "$THIN_POOL"
++        done
++        sleep 5
++    done &
++    echo $! > /run/thinpool-moni.pid
++fi
+

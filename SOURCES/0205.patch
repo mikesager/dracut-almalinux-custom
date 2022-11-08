@@ -1,0 +1,29 @@
+From 4db9f93bde030993f2777a4dacfcb72cab387b43 Mon Sep 17 00:00:00 2001
+From: David Tardon <dtardon@redhat.com>
+Date: Mon, 14 Mar 2022 10:48:44 +0100
+Subject: [PATCH] fix(dracut-systemd): correct service dependencies
+
+dracut-systemd.service is not an early boot service, therefore it should
+not use DefaultDependencies=no. This also fixes the service's ordering
+dependencies, as in its current state it is missing
+Before=shutdown.target umount.target
+
+Resolves: #1924587, #1717323
+---
+ modules.d/98dracut-systemd/dracut-shutdown.service | 2 --
+ 1 file changed, 2 deletions(-)
+
+diff --git a/modules.d/98dracut-systemd/dracut-shutdown.service b/modules.d/98dracut-systemd/dracut-shutdown.service
+index 81043b2d..b7324586 100644
+--- a/modules.d/98dracut-systemd/dracut-shutdown.service
++++ b/modules.d/98dracut-systemd/dracut-shutdown.service
+@@ -7,8 +7,6 @@ Description=Restore /run/initramfs on shutdown
+ Documentation=man:dracut-shutdown.service(8)
+ After=local-fs.target boot.mount boot.automount
+ Wants=local-fs.target
+-Conflicts=shutdown.target umount.target
+-DefaultDependencies=no
+ ConditionPathExists=!/run/initramfs/bin/sh
+ 
+ [Service]
+
