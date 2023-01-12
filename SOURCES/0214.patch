@@ -1,0 +1,55 @@
+From 261d278332e0af85a0311a75d7b81c6cf35e4816 Mon Sep 17 00:00:00 2001
+From: Martin Wilck <mwilck@suse.de>
+Date: Thu, 4 Apr 2019 16:16:40 +0200
+Subject: [PATCH] iscsiroot: try targets only once
+
+In multipath scenarios, "iscsiadm -m node" may contain
+several records with the same target.
+There's no point in trying "iscsiadm --login" multiple
+time for the same target, through the same portal.
+
+Moreover, warn if the desired target is not on the node
+list.
+---
+ modules.d/95iscsi/iscsiroot.sh | 8 +++++++-
+ 1 file changed, 7 insertions(+), 1 deletion(-)
+
+diff --git a/modules.d/95iscsi/iscsiroot.sh b/modules.d/95iscsi/iscsiroot.sh
+index a334b76e..e8e0b4b8 100755
+--- a/modules.d/95iscsi/iscsiroot.sh
++++ b/modules.d/95iscsi/iscsiroot.sh
+@@ -87,7 +87,7 @@ handle_netroot()
+     local iscsi_in_username iscsi_in_password
+     local iscsi_iface_name iscsi_netdev_name
+     local iscsi_param param
+-    local p
++    local p found
+ 
+     # override conf settings by command line options
+     arg=$(getarg rd.iscsi.initiator -d iscsi_initiator=)
+@@ -213,6 +213,7 @@ handle_netroot()
+     targets=$(iscsiadm -m discovery -t st -p $iscsi_target_ip:${iscsi_target_port:+$iscsi_target_port} | sed 's/^.*iqn/iqn/')
+     [ -z "$targets" ] && echo "Target discovery to $iscsi_target_ip:${iscsi_target_port:+$iscsi_target_port} failed with status $?" && exit 1
+ 
++    found=
+     for target in $targets; do
+         if [ "$target" = "$iscsi_target_name" ]; then
+             if [ -n "$iscsi_iface_name" ]; then
+@@ -237,11 +238,16 @@ handle_netroot()
+             if [ "$netif" != "timeout" ]; then
+                 $CMD --login
+             fi
++            found=yes
++            break
+         fi
+     done
+ 
+     if [ "$netif" = "timeout" ]; then
+         iscsiadm -m node -L onboot || :
++    elif [ "$found" != yes ]; then
++        warn "iSCSI target \"$iscsi_target_name\" not found on portal $iscsi_target_ip:$iscsi_target_port"
++        return 1
+     fi
+     > $hookdir/initqueue/work
+ 
+

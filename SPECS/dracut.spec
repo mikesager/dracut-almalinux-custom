@@ -5,7 +5,7 @@
 # strip the automatically generated dep here and instead co-own the
 # directory.
 %global __requires_exclude pkg-config
-%define dist_free_release 209.git20220815
+%define dist_free_release 218.git20221019
 
 Name: dracut
 Version: 049
@@ -236,6 +236,15 @@ Patch205: 0205.patch
 Patch206: 0206.patch
 Patch207: 0207.patch
 Patch208: 0208.patch
+Patch209: 0209.patch
+Patch210: 0210.patch
+Patch211: 0211.patch
+Patch212: 0212.patch
+Patch213: 0213.patch
+Patch214: 0214.patch
+Patch215: 0215.patch
+Patch216: 0216.patch
+Patch217: 0217.patch
 
 Source1: https://www.gnu.org/licenses/lgpl-2.1.txt
 
@@ -690,6 +699,17 @@ echo '# Since rhel-8.3 dracut moved to use NetworkManager
 add_dracutmodules+=" network-legacy "' > /etc/dracut.conf.d/50-network-legacy.conf
 
 %changelog
+* Thu Oct 20 2022 Pavel Valena <pvalena@redhat.com> - 049-218.git20221019
+- Dracut: only login to one target at a time
+- iscsi: don't continue waiting if the root device is present
+- network: stop waiting for interfaces if root device is
+- iscsiroot: parse_iscsi_root overwrites command line args
+- iscsiroot: there's never more than one target per call
+- iscsiroot: try targets only once
+- iscsiroot: remove bashisms
+- fixup "Dracut: only login to one target at a time"
+- 35network-legacy: only skip waiting for interfaces if netroot
+
 * Mon Aug 15 2022 Pavel Valena <pvalena@redhat.com> - 049-209.git20220815
 - fix(95iscsi): Fix network setup
 - fix(dracut-systemd): correct service dependencies

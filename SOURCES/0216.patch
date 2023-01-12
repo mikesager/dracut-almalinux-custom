@@ -1,0 +1,44 @@
+From ee0bba8d350920b8beb4c0629262ec359983ad65 Mon Sep 17 00:00:00 2001
+From: Martin Wilck <mwilck@suse.de>
+Date: Tue, 1 Oct 2019 12:02:04 +0200
+Subject: [PATCH] fixup "Dracut: only login to one target at a time"
+
+On SLE15-SP1 at least, iscsiadm doesn't support combining --op and --login":
+
+> # iscsiadm -m node -T iqn.2018-06.de.suse.zeus:01 --op=update  --name=node.startup --value=onboot --login
+> iscsiadm: Invalid parameters. Login/logout and op passed in
+
+This breaks iSCSI login in initrd, and thus, iSCSI boot.
+
+Fix it by not coalescing everything into a single iscsiadm command.
+Fixes: a59b776bc215 ("Dracut: only login to one target at a time")
+References: bsc#1152650
+---
+ modules.d/95iscsi/iscsiroot.sh | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/modules.d/95iscsi/iscsiroot.sh b/modules.d/95iscsi/iscsiroot.sh
+index 4ab0b6a0..6a12a108 100755
+--- a/modules.d/95iscsi/iscsiroot.sh
++++ b/modules.d/95iscsi/iscsiroot.sh
+@@ -225,8 +225,8 @@ handle_netroot()
+ 
+             CMD="iscsiadm -m node -T $target \
+                      ${iscsi_iface_name:+-I $iscsi_iface_name} \
+-                     -p $iscsi_target_ip${iscsi_target_port:+:$iscsi_target_port} \
+-                     --op=update \
++                     -p $iscsi_target_ip${iscsi_target_port:+:$iscsi_target_port}"
++            __op="--op=update \
+                      --name=node.startup --value=onboot \
+                      ${iscsi_username:+   --name=node.session.auth.username    --value=$iscsi_username} \
+                      ${iscsi_password:+   --name=node.session.auth.password    --value=$iscsi_password} \
+@@ -234,7 +234,7 @@ handle_netroot()
+                      ${iscsi_in_password:+--name=node.session.auth.password_in --value=$iscsi_in_password} \
+                      $EXTRA \
+                      $NULL"
+-            $CMD
++            $CMD $__op
+             if [ "$netif" != "timeout" ]; then
+                 $CMD --login
+             fi
+

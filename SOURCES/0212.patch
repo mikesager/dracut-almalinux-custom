@@ -1,0 +1,39 @@
+From 032129d0eb47d08eff7bd8b4c82a835a8929e9d3 Mon Sep 17 00:00:00 2001
+From: Martin Wilck <mwilck@suse.de>
+Date: Thu, 4 Apr 2019 15:29:04 +0200
+Subject: [PATCH] iscsiroot: parse_iscsi_root overwrites command line args
+
+iscsi_target_name, iscsi_target_ip, iscsi_target_port are
+unconditionally overwritten by parse_iscsi_root. Don't set
+them here, for code clarity.
+---
+ modules.d/95iscsi/iscsiroot.sh | 8 ++------
+ 1 file changed, 2 insertions(+), 6 deletions(-)
+
+diff --git a/modules.d/95iscsi/iscsiroot.sh b/modules.d/95iscsi/iscsiroot.sh
+index f3f88259..45db89c1 100755
+--- a/modules.d/95iscsi/iscsiroot.sh
++++ b/modules.d/95iscsi/iscsiroot.sh
+@@ -92,12 +92,6 @@ handle_netroot()
+     # override conf settings by command line options
+     arg=$(getarg rd.iscsi.initiator -d iscsi_initiator=)
+     [ -n "$arg" ] && iscsi_initiator=$arg
+-    arg=$(getargs rd.iscsi.target.name -d iscsi_target_name=)
+-    [ -n "$arg" ] && iscsi_target_name=$arg
+-    arg=$(getarg rd.iscsi.target.ip -d iscsi_target_ip)
+-    [ -n "$arg" ] && iscsi_target_ip=$arg
+-    arg=$(getarg rd.iscsi.target.port -d iscsi_target_port=)
+-    [ -n "$arg" ] && iscsi_target_port=$arg
+     arg=$(getarg rd.iscsi.target.group -d iscsi_target_group=)
+     [ -n "$arg" ] && iscsi_target_group=$arg
+     arg=$(getarg rd.iscsi.username -d iscsi_username=)
+@@ -112,6 +106,8 @@ handle_netroot()
+         iscsi_param="$iscsi_param $p"
+     done
+ 
++    # this sets iscsi_target_name and possibly overwrites most
++    # parameters read from the command line above
+     parse_iscsi_root "$1" || return 1
+ 
+     # Bail out early, if there is no route to the destination
+

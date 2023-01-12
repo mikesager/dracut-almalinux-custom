@@ -1,0 +1,42 @@
+From a590dfb3670a68b9eebc3e0ea617c5cf192c51ae Mon Sep 17 00:00:00 2001
+From: Martin Wilck <mwilck@suse.de>
+Date: Thu, 4 Apr 2019 15:40:14 +0200
+Subject: [PATCH] iscsiroot: there's never more than one target per call
+
+iscsi_target_name is set by iscsi_root, and thus can't have
+more than one member. This allows us to get rid of one bashism
+in iscsiroot.sh.
+---
+ modules.d/95iscsi/iscsiroot.sh | 11 +++--------
+ 1 file changed, 3 insertions(+), 8 deletions(-)
+
+diff --git a/modules.d/95iscsi/iscsiroot.sh b/modules.d/95iscsi/iscsiroot.sh
+index 45db89c1..a334b76e 100755
+--- a/modules.d/95iscsi/iscsiroot.sh
++++ b/modules.d/95iscsi/iscsiroot.sh
+@@ -213,10 +213,8 @@ handle_netroot()
+     targets=$(iscsiadm -m discovery -t st -p $iscsi_target_ip:${iscsi_target_port:+$iscsi_target_port} | sed 's/^.*iqn/iqn/')
+     [ -z "$targets" ] && echo "Target discovery to $iscsi_target_ip:${iscsi_target_port:+$iscsi_target_port} failed with status $?" && exit 1
+ 
+-    for target in $iscsi_target_name; do
+-        case "$targets" in
+-        *$target*)
+-            EXTRA=""
++    for target in $targets; do
++        if [ "$target" = "$iscsi_target_name" ]; then
+             if [ -n "$iscsi_iface_name" ]; then
+                 iscsiadm -m iface -I $iscsi_iface_name --op=new
+                 EXTRA=" ${iscsi_netdev_name:+--name=iface.net_ifacename --value=$iscsi_netdev_name} "
+@@ -239,10 +237,7 @@ handle_netroot()
+             if [ "$netif" != "timeout" ]; then
+                 $CMD --login
+             fi
+-        ;;
+-        *)
+-        ;;
+-        esac
++        fi
+     done
+ 
+     if [ "$netif" = "timeout" ]; then
+

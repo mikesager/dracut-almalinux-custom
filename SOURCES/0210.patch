@@ -1,0 +1,39 @@
+From 96fc660c9170fbea5ac80235ab7d0e7cfdbe243e Mon Sep 17 00:00:00 2001
+From: Martin Wilck <mwilck@suse.de>
+Date: Thu, 21 Mar 2019 16:27:04 +0100
+Subject: [PATCH] iscsi: don't continue waiting if the root device is present
+
+dracut waits for every iscsiroot connection to be established
+before switching root. This is not necessary in multipath scenarios,
+where a single path is usually sufficient to set up the root device,
+and where users expect booting to succeed unless all paths are down.
+
+Don't wait for the iscsi portal to start if the root device has
+already been found.
+---
+ modules.d/95iscsi/parse-iscsiroot.sh | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/modules.d/95iscsi/parse-iscsiroot.sh b/modules.d/95iscsi/parse-iscsiroot.sh
+index f00a83bb..8d6e3e8c 100755
+--- a/modules.d/95iscsi/parse-iscsiroot.sh
++++ b/modules.d/95iscsi/parse-iscsiroot.sh
+@@ -84,7 +84,7 @@ if [ -n "$iscsi_firmware" ]; then
+     modprobe -b -q iscsi_boot_sysfs 2>/dev/null
+     modprobe -b -q iscsi_ibft
+     # if no ip= is given, but firmware
+-    echo "[ -f '/tmp/iscsistarted-firmware' ]" > $hookdir/initqueue/finished/iscsi_started.sh
++    echo "${DRACUT_SYSTEMD+systemctl is-active initrd-root-device.target || }[ -f '/tmp/iscsistarted-firmware' ]" > $hookdir/initqueue/finished/iscsi_started.sh
+     initqueue --unique --online /sbin/iscsiroot online "iscsi:" "$NEWROOT"
+     initqueue --unique --onetime --timeout /sbin/iscsiroot timeout "iscsi:" "$NEWROOT"
+     initqueue --unique --onetime --settled /sbin/iscsiroot online "iscsi:" "'$NEWROOT'"
+@@ -145,7 +145,7 @@ for nroot in $(getargs netroot); do
+     type parse_iscsi_root >/dev/null 2>&1 || . /lib/net-lib.sh
+     parse_iscsi_root "$nroot" || return 1
+     netroot_enc=$(str_replace "$nroot" '/' '\2f')
+-    echo "[ -f '/tmp/iscsistarted-$netroot_enc' ]" > $hookdir/initqueue/finished/iscsi_started.sh
++    echo "${DRACUT_SYSTEMD+systemctl is-active initrd-root-device.target || }[ -f '/tmp/iscsistarted-$netroot_enc' ]" > $hookdir/initqueue/finished/iscsi_started.sh
+ done
+ 
+ # Done, all good!
+

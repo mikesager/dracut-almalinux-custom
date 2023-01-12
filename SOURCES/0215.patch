@@ -1,0 +1,77 @@
+From 0df65c3c001fb5656838274b172c247c41dc0442 Mon Sep 17 00:00:00 2001
+From: Martin Wilck <mwilck@suse.de>
+Date: Thu, 4 Apr 2019 17:12:07 +0200
+Subject: [PATCH] iscsiroot: remove bashisms
+
+According to the dracut README, module code to be run in
+the initrd must be POSIX-compliant. Replace remaining
+bashisms (as reported by checkbashisms) with POSIX compliant
+code.
+
+The use of "type" is not strictly POSIX compliant, but it's
+all over the place in dracut code. dash supports it, anyway.
+---
+ modules.d/95iscsi/iscsiroot.sh | 26 +++++++++++++-------------
+ 1 file changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/modules.d/95iscsi/iscsiroot.sh b/modules.d/95iscsi/iscsiroot.sh
+index e8e0b4b8..4ab0b6a0 100755
+--- a/modules.d/95iscsi/iscsiroot.sh
++++ b/modules.d/95iscsi/iscsiroot.sh
+@@ -54,11 +54,11 @@ handle_firmware()
+     if ! iscsiadm -m fw; then
+         warn "iscsiadm: Could not get list of targets from firmware."
+     else
+-        ifaces=( $(echo /sys/firmware/ibft/ethernet*) )
++        ifaces=$(set -- /sys/firmware/ibft/ethernet*; echo $#)
+         retry=$(cat /tmp/session-retry)
+ 
+-        if [ $retry -lt ${#ifaces[*]} ]; then
+-            let retry++
++        if [ $retry -lt $ifaces ]; then
++            retry=$((retry+1))
+             echo $retry > /tmp/session-retry
+             return 1
+         else
+@@ -88,6 +88,7 @@ handle_netroot()
+     local iscsi_iface_name iscsi_netdev_name
+     local iscsi_param param
+     local p found
++    local login_retry_max_seen=
+ 
+     # override conf settings by command line options
+     arg=$(getarg rd.iscsi.initiator -d iscsi_initiator=)
+@@ -103,7 +104,9 @@ handle_netroot()
+     arg=$(getarg rd.iscsi.in.password -d iscsi_in_password=)
+     [ -n "$arg" ] && iscsi_in_password=$arg
+     for p in $(getargs rd.iscsi.param -d iscsi_param); do
+-        iscsi_param="$iscsi_param $p"
++        [ "${p%=*}" = node.session.initial_login_retry_max ] && \
++            login_retry_max_seen=yes
++            iscsi_param="$iscsi_param $p"
+     done
+ 
+     # this sets iscsi_target_name and possibly overwrites most
+@@ -116,15 +119,12 @@ handle_netroot()
+     fi
+ 
+     #limit iscsistart login retries
+-    case "$iscsi_param" in
+-        *node.session.initial_login_retry_max*) ;;
+-        *)
+-            retries=$(getargnum 3 0 10000 rd.iscsi.login_retry_max)
+-            if [ $retries -gt 0 ]; then
+-                iscsi_param="${iscsi_param% } node.session.initial_login_retry_max=$retries"
+-            fi
+-        ;;
+-    esac
++    if [ "$login_retry_max_seen" != yes ]; then
++        retries=$(getargnum 3 0 10000 rd.iscsi.login_retry_max)
++        if [ $retries -gt 0 ]; then
++            iscsi_param="${iscsi_param% } node.session.initial_login_retry_max=$retries"
++        fi
++    fi
+ 
+ # XXX is this needed?
+     getarg ro && iscsirw=ro
+
