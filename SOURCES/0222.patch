@@ -1,0 +1,47 @@
+From a7eaedb1679d871c213753fad872d65b23070240 Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Thu, 19 Jan 2023 16:04:19 +0100
+Subject: [PATCH] fix(dracut-init.sh): backport common paths
+
+While backporting, some paths might be expected to be defined.
+Backporting these paths as a preemptive measure (there's no test)
+to avoid possible regressions when they're undefined.
+
+(Cherry-picked from a01204202b3014c0c761c93bc7de8bf35e6dc5ef
+and 18d36fabf5ab20404e63ae56f166a5a53a874ba9)
+
+RHEL-only
+Resolves: #2141480
+---
+ dracut-init.sh | 4 ++++
+ dracut.sh      | 2 ++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/dracut-init.sh b/dracut-init.sh
+index b6708288..50f9cf98 100644
+--- a/dracut-init.sh
++++ b/dracut-init.sh
+@@ -79,6 +79,10 @@ export srcmods
+     export hookdirs
+ }
+ 
++DRACUT_LDD=${DRACUT_LDD:-ldd}
++DRACUT_TESTBIN=${DRACUT_TESTBIN:-/bin/sh}
++DRACUT_LDCONFIG=${DRACUT_LDCONFIG:-ldconfig}
++
+ . $dracutbasedir/dracut-functions.sh
+ 
+ # Detect lib paths
+diff --git a/dracut.sh b/dracut.sh
+index 57f51e91..f58559e8 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -730,6 +730,8 @@ done
+ export PATH="${NPATH#:}"
+ unset NPATH
+ 
++export SYSTEMCTL=${SYSTEMCTL:-systemctl}
++
+ # these options add to the stuff in the config file
+ (( ${#add_dracutmodules_l[@]} )) && add_dracutmodules+=" ${add_dracutmodules_l[@]} "
+ (( ${#force_add_dracutmodules_l[@]} )) && force_add_dracutmodules+=" ${force_add_dracutmodules_l[@]} "

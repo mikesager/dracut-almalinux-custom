@@ -1,0 +1,26 @@
+From 7e401546ec38b3b5858136e93aeeffb93e496556 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Tue, 10 Jan 2023 10:43:50 +0100
+Subject: [PATCH] fix(dracut-init): use ldconfig directly instead of
+ DRACUT_LDCONFIG
+
+RHEL-only
+Resolves: #2141480
+---
+ dracut-init.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dracut-init.sh b/dracut-init.sh
+index 5df2e583..b6708288 100644
+--- a/dracut-init.sh
++++ b/dracut-init.sh
+@@ -448,7 +448,7 @@ build_ld_cache() {
+     for f in "$dracutsysrootdir"/etc/ld.so.conf "$dracutsysrootdir"/etc/ld.so.conf.d/*; do
+         [[ -f $f ]] && inst_simple "${f#$dracutsysrootdir}"
+     done
+-    if ! $DRACUT_LDCONFIG -r "$initdir" -f /etc/ld.so.conf; then
++    if ! ldconfig -r "$initdir" -f /etc/ld.so.conf; then
+         if [[ $EUID == 0 ]]; then
+             derror "ldconfig exited ungracefully"
+         else
+

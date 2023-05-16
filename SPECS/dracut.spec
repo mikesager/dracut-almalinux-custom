@@ -5,7 +5,7 @@
 # strip the automatically generated dep here and instead co-own the
 # directory.
 %global __requires_exclude pkg-config
-%define dist_free_release 218.git20221019
+%define dist_free_release 223.git20230119
 
 Name: dracut
 Version: 049
@@ -245,6 +245,11 @@ Patch214: 0214.patch
 Patch215: 0215.patch
 Patch216: 0216.patch
 Patch217: 0217.patch
+Patch218: 0218.patch
+Patch219: 0219.patch
+Patch220: 0220.patch
+Patch221: 0221.patch
+Patch222: 0222.patch
 
 Source1: https://www.gnu.org/licenses/lgpl-2.1.txt
 
@@ -699,6 +704,15 @@ echo '# Since rhel-8.3 dracut moved to use NetworkManager
 add_dracutmodules+=" network-legacy "' > /etc/dracut.conf.d/50-network-legacy.conf
 
 %changelog
+* Thu Jan 19 2023 Pavel Valena <pvalena@redhat.com> - 049-223.git20230119
+- fix(dracut-init): use ldconfig directly instead of
+- fix(dracut-init.sh): backport common paths
+
+* Wed Dec 14 2022 Pavel Valena <pvalena@redhat.com> - 049-221.git20221214
+- fix(80lvmthinpool-monitor): use systemsctl instead of
+- fix(squash): build ld cache for squash loader
+- fix(network-manager): write DHCP filename option to dhcpopts
+
 * Thu Oct 20 2022 Pavel Valena <pvalena@redhat.com> - 049-218.git20221019
 - Dracut: only login to one target at a time
 - iscsi: don't continue waiting if the root device is present

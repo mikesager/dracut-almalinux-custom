@@ -1,0 +1,27 @@
+From c14d276bc5dd17d881478bbce57d54e3c4ffb094 Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Tue, 6 Dec 2022 20:35:52 +0100
+Subject: [PATCH] fix(80lvmthinpool-monitor): use systemsctl instead of
+ $SYSTEMCTL
+
+as the change is not backported to RHEL-8.
+
+rhel-only
+
+Resolves: #2141480
+---
+ modules.d/80lvmthinpool-monitor/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/80lvmthinpool-monitor/module-setup.sh b/modules.d/80lvmthinpool-monitor/module-setup.sh
+index ca015bdc..550f3f16 100755
+--- a/modules.d/80lvmthinpool-monitor/module-setup.sh
++++ b/modules.d/80lvmthinpool-monitor/module-setup.sh
+@@ -20,5 +20,5 @@ install() {
+     inst_script "$moddir/start-thinpool-monitor.sh" "/bin/start-thinpool-monitor"
+ 
+     inst "$moddir/start-thinpool-monitor.service" "$systemdsystemunitdir/start-thinpool-monitor.service"
+-    $SYSTEMCTL -q --root "$initdir" add-wants initrd.target start-thinpool-monitor.service
++    systemctl -q --root "$initdir" add-wants initrd.target start-thinpool-monitor.service
+ }
+
