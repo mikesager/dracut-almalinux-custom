@@ -1,0 +1,56 @@
+From 8525d05be0896f5016e71d501d979ece02373ac1 Mon Sep 17 00:00:00 2001
+From: Lev Veyde <lveyde@redhat.com>
+Date: Thu, 22 Apr 2021 01:11:55 +0300
+Subject: [PATCH] fix(img-lib): ignored null byte in input
+
+The system currently throws numerous nasty warning messages during
+the boot, about ignored null bytes in input.
+
+This patch adds a filter to the dd command, to filter these null
+bytes out, and thus to prevent these warning messages.
+
+Signed-off-by: Lev Veyde <lveyde@redhat.com>
+
+(Cherry-picked from commit: cf04e49512c244dae5d785869ebfb9c8f4710c7e)
+Resolves: rhbz#1952400
+---
+ modules.d/99img-lib/img-lib.sh      | 2 +-
+ modules.d/99img-lib/module-setup.sh | 4 ++--
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/modules.d/99img-lib/img-lib.sh b/modules.d/99img-lib/img-lib.sh
+index f4774153..ada35ccb 100755
+--- a/modules.d/99img-lib/img-lib.sh
++++ b/modules.d/99img-lib/img-lib.sh
+@@ -9,7 +9,7 @@
+ det_archive() {
+     # NOTE: echo -e works in ash and bash, but not dash
+     local bz="BZh" xz="$(echo -e '\xfd7zXZ')" gz="$(echo -e '\x1f\x8b')" zs="$(echo -e '\x28\xB5\x2F\xFD')"
+-    local headerblock="$(dd ${1:+if=$1} bs=262 count=1 2>/dev/null)"
++    local headerblock="$(dd ${1:+if=$1} bs=262 count=1 2>/dev/null | tr -d '\0')"
+     case "$headerblock" in
+         $xz*) echo "xz" ;;
+         $gz*) echo "gzip" ;;
+diff --git a/modules.d/99img-lib/module-setup.sh b/modules.d/99img-lib/module-setup.sh
+index fe1eca1a..92c1d1dd 100755
+--- a/modules.d/99img-lib/module-setup.sh
++++ b/modules.d/99img-lib/module-setup.sh
+@@ -3,7 +3,7 @@
+ 
+ # called by dracut
+ check() {
+-    require_binaries tar gzip dd bash || return 1
++    require_binaries tar gzip dd bash tr || return 1
+     return 255
+ }
+ 
+@@ -14,7 +14,7 @@ depends() {
+ 
+ # called by dracut
+ install() {
+-    inst_multiple tar gzip dd bash
++    inst_multiple tar gzip dd bash tr
+     # TODO: make this conditional on a cmdline flag / config option
+     inst_multiple -o cpio xz bzip2 zstd
+     inst_simple "$moddir/img-lib.sh" "/lib/img-lib.sh"
+

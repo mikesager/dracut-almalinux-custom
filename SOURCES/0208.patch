@@ -52,3 +52,4 @@ index 00000000..ce5c883b
 +# https://github.com/koalaman/shellcheck/wiki/SC3045
 +# ... but dash supports it
 +disable=SC3045
+

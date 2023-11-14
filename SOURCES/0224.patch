@@ -1,0 +1,43 @@
+From 26c332c9881db461e9af75015d8b7d46c877c39f Mon Sep 17 00:00:00 2001
+From: Coiby Xu <coxu@redhat.com>
+Date: Sun, 24 Apr 2022 10:52:33 +0800
+Subject: [PATCH] fix(kernel-network-modules): allow specifying empty
+ --hostonly-nics
+
+Commit 1e92f728 ("Add a --hostonly-nics option") allows only installing
+the network drivers for specified NICs. But it doesn't allow an emtpy
+--hostonly-nics. Specifying empty hostonly-nics is needed to address the
+following use cases,
+ - drivers/s390/net is installed regardless of --hostonly-nics. There is
+   no need to repeat it.
+ - get_dev_module couldn't find the driver for a bond or a bridge
+   network interface so it's better for a module to install a bond
+   or bridge driver itself
+ - dracut kdump module wants to install the needed network drivers by
+   itself because it can't add the --hostonly-nics option to dracut when
+   itself is a dracut module
+
+This patch distinguishes between an empty --hostonly-nics and --hostonly-nics
+not added so a user can pass an empty --hostonly-nics option.
+
+(Cherry-picked commit: 3cd4f1a3a793826708976414a33b5f61913f4a5e)
+
+Resolves: #2148318
+---
+ modules.d/90kernel-network-modules/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/90kernel-network-modules/module-setup.sh b/modules.d/90kernel-network-modules/module-setup.sh
+index f36d31f7..851bc31b 100755
+--- a/modules.d/90kernel-network-modules/module-setup.sh
++++ b/modules.d/90kernel-network-modules/module-setup.sh
+@@ -22,7 +22,7 @@ installkernel() {
+         dracut_instmods -o -P ".*${_unwanted_drivers}.*" -s "$_net_symbols" "=drivers/s390/net"
+     fi
+ 
+-    if [[ $hostonly_mode == 'strict' ]] && [[ $hostonly_nics ]]; then
++    if [[ $hostonly_mode == 'strict' ]] && [[ -n ${hostonly_nics+x} ]]; then
+         for _nic in $hostonly_nics; do
+             _net_drivers=$(get_dev_module /sys/class/net/$_nic)
+             if ! [[ $_net_drivers ]]; then
+

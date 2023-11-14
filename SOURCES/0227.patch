@@ -1,0 +1,55 @@
+From a6f8ccba4b55a1f3715a0fd3d8f611b954e443a5 Mon Sep 17 00:00:00 2001
+From: David Hildenbrand <david@redhat.com>
+Date: Thu, 18 Mar 2021 10:41:49 +0100
+Subject: [PATCH] feat(qemu): include the virtio_mem kernel module
+
+This adds support for virtio-mem devices, which provide a dynamic
+amount of memory in a VM. Right now, the driver gets loaded and any
+memory gets added to the system when loading the kernel module from disk.
+
+While not strictly required to boot, we want to be able to
+1) add virito-mem provided memory to the system early while booting up
+2) add virtio-mem provided memory even when booting without a disk
+3) add virtio-mem devices without adding actual memory in kdump
+   environments such that we can query things like:
+ a) is a certain PFN currently plugged in the hypervisor and, therefore,
+    should actually be read when creating a system dump. (kexec-tools
+    prepares the vmcore header, like on x86-64)
+ b) which ranges of a virtio-mem device are currently plugged in the
+    hypervisor and, therefore, should be added to the dump. (vmcore header
+    gets prepared by the crashkernel, like on s390x)
+ Note that loading virtio-mem in kdump environments currently fails with
+ -EBUSY -- but there are plans to install proper hooks instead to support
+  especially a) in the near future.
+
+1) and 2) are only really effective when memory hotplug is configured to
+automatically online all added system RAM in the kernel (and not late,
+via udev rules): e.g., via "mhp_default_state=online" on the kernel
+cmdline or via CONFIG_MEMORY_HOTPLUG_DEFAULT_ONLINE in the kernel.
+
+Especially 2) and 3) require the module to be present inside the initial
+ramdisk. The primary use case for including it in the initial ramdisk
+is 3).
+
+Signed-off-by: David Hildenbrand <david@redhat.com>
+(cherry picked from commit f3dcb60619671f2d353caaa42d38207172c8b3ba)
+
+Cherry-picked from: f3dcb60619671f2d353caaa42d38207172c8b3ba
+Resolves: #2228422
+---
+ modules.d/90qemu/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/90qemu/module-setup.sh b/modules.d/90qemu/module-setup.sh
+index 7e5ea6a4..e89dafbb 100755
+--- a/modules.d/90qemu/module-setup.sh
++++ b/modules.d/90qemu/module-setup.sh
+@@ -31,7 +31,7 @@ installkernel() {
+     hostonly='' instmods \
+             ata_piix ata_generic pata_acpi cdrom sr_mod ahci \
+             virtio_blk virtio virtio_ring virtio_pci \
+-            virtio_scsi virtio_console virtio_rng \
++            virtio_scsi virtio_console virtio_rng virtio_mem \
+             spapr-vscsi \
+             qemu_fw_cfg
+ }

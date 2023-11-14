@@ -5,7 +5,7 @@
 # strip the automatically generated dep here and instead co-own the
 # directory.
 %global __requires_exclude pkg-config
-%define dist_free_release 223.git20230119
+%define dist_free_release 228.git20230802
 
 Name: dracut
 Version: 049
@@ -250,6 +250,11 @@ Patch219: 0219.patch
 Patch220: 0220.patch
 Patch221: 0221.patch
 Patch222: 0222.patch
+Patch223: 0223.patch
+Patch224: 0224.patch
+Patch225: 0225.patch
+Patch226: 0226.patch
+Patch227: 0227.patch
 
 Source1: https://www.gnu.org/licenses/lgpl-2.1.txt
 
@@ -588,6 +593,7 @@ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/
 %{dracutlibdir}/modules.d/91crypt-loop
 %{dracutlibdir}/modules.d/95debug
 %{dracutlibdir}/modules.d/95fstab-sys
+%{dracutlibdir}/modules.d/95hwdb
 %{dracutlibdir}/modules.d/95lunmask
 %{dracutlibdir}/modules.d/95nvmf
 %{dracutlibdir}/modules.d/95resume
@@ -704,6 +710,20 @@ echo '# Since rhel-8.3 dracut moved to use NetworkManager
 add_dracutmodules+=" network-legacy "' > /etc/dracut.conf.d/50-network-legacy.conf
 
 %changelog
+* Wed Aug 02 2023 Lukas Nykryn <lnykryn@redhat.com> - 049-228.git20230802
+- feat(qemu): include the virtio_mem kernel module
+
+* Tue Jul 25 2023 Pavel Valena <pvalena@redhat.com> - 049-227.git20230725
+- fix(rngd): install system service file
+- feat(hwdb): install hwdb on demand when module is needed
+
+* Wed Jun 14 2023 Pavel Valena <pvalena@redhat.com> - 049-225.git20230614
+- fix(kernel-network-modules): allow specifying empty hostonly-nics
+  Resolves: #2148318
+
+* Fri Mar 31 2023 Pavel Valena <pvalena@redhat.com> - 049-224.git20230330
+- fix(img-lib): ignored null byte in input
+
 * Thu Jan 19 2023 Pavel Valena <pvalena@redhat.com> - 049-223.git20230119
 - fix(dracut-init): use ldconfig directly instead of
 - fix(dracut-init.sh): backport common paths

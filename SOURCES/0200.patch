@@ -82,3 +82,4 @@ index 8800a49e..71bea53a 100755
  
      inst_simple /etc/system-fips
      [ -c ${initdir}/dev/random ] || mknod ${initdir}/dev/random c 1 8 \
+

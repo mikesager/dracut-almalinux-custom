@@ -1,0 +1,85 @@
+From 62fb051db129a1cbb5645107933e961a57d8bef3 Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Tue, 25 Apr 2023 14:56:59 +0200
+Subject: [PATCH] feat(hwdb): install hwdb on demand when module is needed
+
+Adding a module to install hwdb. Further extensions might make only selected
+part of hwdb installable, to save space. The module is not included by default.
+
+Including the module adds 2MB of compressed data (on Fedora, the file has 12MB).
+
+hwdb is needed in case of custom HW, like a keyboard/mouse or various interfaces.
+
+Original PR: https://github.com/dracutdevs/dracut/pull/1681
+
+(Cherry-picked commit: 062e739d89543a38d4b3e2cab155912bc4bf9e56)
+
+Resolves: #1968118
+---
+ dracut.sh                        |  6 ++++++
+ dracut.spec                      |  1 +
+ modules.d/95hwdb/module-setup.sh | 26 ++++++++++++++++++++++++++
+ 3 files changed, 33 insertions(+)
+
+diff --git a/dracut.sh b/dracut.sh
+index f58559e8..869b90b0 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -1302,6 +1302,12 @@ if ! [[ -d "$udevdir" ]]; then
+     [[ -e /usr/lib/udev/collect ]] && udevdir=/usr/lib/udev
+ fi
+ 
++[[ -d $udevconfdir ]] \
++    || udevconfdir="$(pkg-config udev --variable=udevconfdir 2>/dev/null)"
++if ! [[ -d "$udevconfdir" ]]; then
++    [[ -d /etc/udev ]] && udevconfdir=/etc/udev
++fi
++
+ [[ -d $systemdutildir ]] \
+     || systemdutildir=$(pkg-config systemd --variable=systemdutildir 2>/dev/null)
+ 
+diff --git a/dracut.spec b/dracut.spec
+index 90fa903a..a417f780 100644
+--- a/dracut.spec
++++ b/dracut.spec
+@@ -365,6 +365,7 @@ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/
+ %{dracutlibdir}/modules.d/91crypt-loop
+ %{dracutlibdir}/modules.d/95debug
+ %{dracutlibdir}/modules.d/95fstab-sys
++%{dracutlibdir}/modules.d/95hwdb
+ %{dracutlibdir}/modules.d/95lunmask
+ %{dracutlibdir}/modules.d/95nvmf
+ %{dracutlibdir}/modules.d/95resume
+diff --git a/modules.d/95hwdb/module-setup.sh b/modules.d/95hwdb/module-setup.sh
+new file mode 100755
+index 00000000..16365377
+--- /dev/null
++++ b/modules.d/95hwdb/module-setup.sh
+@@ -0,0 +1,26 @@
++#!/bin/bash
++# This file is part of dracut.
++# SPDX-License-Identifier: GPL-2.0-or-later
++
++check() {
++    return 255
++}
++
++# called by dracut
++install() {
++    local hwdb_bin
++
++    # systemd-hwdb ships the file in /etc, with /usr/lib as an alternative.
++    # Therefore consider this location as preferred for configuration.
++    hwdb_bin="${udevdir}"/hwdb.bin
++
++    if [[ ! -r "${hwdb_bin}" ]]; then
++      hwdb_bin="${udevconfdir}"/hwdb.bin
++    fi
++
++    if [[ $hostonly ]]; then
++        inst_multiple -H "${hwdb_bin}"
++    else
++        inst_multiple "${hwdb_bin}"
++    fi
++}
+

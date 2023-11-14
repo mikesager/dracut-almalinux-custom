@@ -45,3 +45,4 @@ index 57f51e91..f58559e8 100755
  # these options add to the stuff in the config file
  (( ${#add_dracutmodules_l[@]} )) && add_dracutmodules+=" ${add_dracutmodules_l[@]} "
  (( ${#force_add_dracutmodules_l[@]} )) && force_add_dracutmodules+=" ${force_add_dracutmodules_l[@]} "
+

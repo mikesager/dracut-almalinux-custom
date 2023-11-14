@@ -29,3 +29,4 @@ index 61752384..94c19545 100755
      source_hook initqueue/online $ifname
      /sbin/netroot $ifname
  done
+
