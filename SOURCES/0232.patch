@@ -1,0 +1,41 @@
+From 141a2ecf03efb77c0622dcc96b503e6344f63938 Mon Sep 17 00:00:00 2001
+From: Coiby Xu <coxu@redhat.com>
+Date: Wed, 14 Jul 2021 15:26:10 +0800
+Subject: [PATCH] fix(qeth_rules): check the existence of
+ /sys/devices/qeth/*/online beforehand
+
+On s390x KVM machines, the follow errors occurred,
+    $ kdumpctl rebuild
+    kdump: Rebuilding /boot/initramfs-4.18.0-321.el8.s390xkdump.img
+    /usr/lib/dracut/modules.d/95qeth_rules/module-setup.sh: line 13: /sys/devices/qeth/*/online: No such file or directory
+    /usr/lib/dracut/modules.d/95qeth_rules/module-setup.sh: line 13: /sys/devices/qeth/*/online: No such file or directory
+
+because s390x KVM uses virtual devices and /sys/devices/qeth/*/online
+doesn't exist. Eliminate this error by checking the existence
+beforehand.
+
+(Cherry-picked commit: 04fd4f0139c25e6f3846e759de15ac80ec807887)
+
+Resolves: RHEL-17239
+---
+ modules.d/95qeth_rules/module-setup.sh | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/modules.d/95qeth_rules/module-setup.sh b/modules.d/95qeth_rules/module-setup.sh
+index d4d15118..1a067e90 100755
+--- a/modules.d/95qeth_rules/module-setup.sh
++++ b/modules.d/95qeth_rules/module-setup.sh
+@@ -10,9 +10,10 @@ check() {
+ 
+     [[ $hostonly ]] && {
+         for i in /sys/devices/qeth/*/online; do
+-            read _online < $i
+-            [ $_online -eq 1 ] && return 0
+-	done
++            [ ! -f "$i" ] && continue
++            read -r _online < "$i"
++            [ "$_online" -eq 1 ] && return 0
++        done
+     }
+     return 255
+ }

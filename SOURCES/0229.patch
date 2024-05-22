@@ -1,0 +1,28 @@
+From 243dcc41710cb8475ec4188b39fca98258baac99 Mon Sep 17 00:00:00 2001
+From: Antonio Alvarez Feijoo <antonio.feijoo@suse.com>
+Date: Thu, 1 Sep 2022 11:47:09 +0200
+Subject: [PATCH] feat(systemd): install systemd-sysroot-fstab-check
+
+systemd-sysroot-fstab-check is a symlink to systemd-fstab-generator added in
+systemd commit https://github.com/systemd/systemd/commit/cd7ad0cb
+
+(cherry picked from commit 23684e4a2bb024595ad63d9f49d83b4693537110)
+
+Resolves: RHEL-12408
+---
+ modules.d/00systemd/module-setup.sh | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/modules.d/00systemd/module-setup.sh b/modules.d/00systemd/module-setup.sh
+index 38c244a2..1e75afbc 100755
+--- a/modules.d/00systemd/module-setup.sh
++++ b/modules.d/00systemd/module-setup.sh
+@@ -47,6 +47,7 @@ install() {
+         $systemdutildir/systemd-sysctl \
+         $systemdutildir/systemd-modules-load \
+         $systemdutildir/systemd-vconsole-setup \
++        $systemdutildir/systemd-sysroot-fstab-check \
+         $systemdutildir/system-generators/systemd-fstab-generator \
+         $systemdutildir/system-generators/systemd-gpt-auto-generator \
+         \
+

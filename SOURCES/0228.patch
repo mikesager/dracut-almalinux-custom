@@ -1,0 +1,33 @@
+From 9f4ce92bdf294cb69991c974ba440f286b43acd4 Mon Sep 17 00:00:00 2001
+From: Wenchao Hao <haowenchao@huawei.com>
+Date: Fri, 29 Apr 2022 14:09:02 +0800
+Subject: [PATCH] fix(iscsi): do not exit in handle_netroot() if discovery
+ failed
+
+User may specify multiple netroot in cmdline, failed to connect one netroot
+do not mean all netroot are not accessible. So if one netroot failed, do
+not exit the discovery and login flow.
+
+Signed-off-by: Wenchao Hao <haowenchao@huawei.com>
+
+(Cherry-picked commit: 319dc7fe10585a19d1a051f8ad1ba0190f86ff1f)
+
+Resolves: RHEL-11779
+---
+ modules.d/95iscsi/iscsiroot.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/95iscsi/iscsiroot.sh b/modules.d/95iscsi/iscsiroot.sh
+index 6a12a108..029060e0 100755
+--- a/modules.d/95iscsi/iscsiroot.sh
++++ b/modules.d/95iscsi/iscsiroot.sh
+@@ -211,7 +211,7 @@ handle_netroot()
+     fi
+ 
+     targets=$(iscsiadm -m discovery -t st -p $iscsi_target_ip:${iscsi_target_port:+$iscsi_target_port} | sed 's/^.*iqn/iqn/')
+-    [ -z "$targets" ] && echo "Target discovery to $iscsi_target_ip:${iscsi_target_port:+$iscsi_target_port} failed with status $?" && exit 1
++    [ -z "$targets" ] && echo "Target discovery to $iscsi_target_ip:${iscsi_target_port:+$iscsi_target_port} failed with status $?" && return 1
+ 
+     found=
+     for target in $targets; do
+

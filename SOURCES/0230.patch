@@ -1,0 +1,57 @@
+From 81b6ee891bae6b2b0271f8449f7fd698e278c40a Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Wed, 7 Jun 2023 22:12:45 +0200
+Subject: [PATCH] fix(fcoe-uefi): exit early on empty vlan
+
+Exit early in case get_fcoe_boot_vlan exits with error or just an empty string,
+instead of producing invalid config entry.
+
+(Cherry-picked commit: 45fc8df1cf3fdf9726efda4d26c7cccb9e6aedd2)
+
+Resolves: RHEL-16551
+---
+ modules.d/95fcoe-uefi/parse-uefifcoe.sh | 31 +++++++++++++++++--------------
+ 1 file changed, 17 insertions(+), 14 deletions(-)
+
+diff --git a/modules.d/95fcoe-uefi/parse-uefifcoe.sh b/modules.d/95fcoe-uefi/parse-uefifcoe.sh
+index 87d49660..02fab138 100755
+--- a/modules.d/95fcoe-uefi/parse-uefifcoe.sh
++++ b/modules.d/95fcoe-uefi/parse-uefifcoe.sh
+@@ -9,20 +9,23 @@ print_fcoe_uefi_conf()
+     local mac dev vlan
+     mac=$(get_fcoe_boot_mac "$1")
+     [ -z "$mac" ] && return 1
+-    dev=$(set_ifname fcoe $mac)
+-    vlan=$(get_fcoe_boot_vlan  "$1")
+-    if [ "$vlan" -ne "0" ]; then
+-        case "$vlan" in
+-            [0-9]*)
+-                printf "%s\n" "vlan=$dev.$vlan:$dev"
+-                dev="$dev.$vlan"
+-                ;;
+-            *)
+-                printf "%s\n" "vlan=$vlan:$dev"
+-                dev="$vlan"
+-                ;;
+-        esac
+-    fi
++    dev=$(set_ifname fcoe "$mac")
++    vlan=$(get_fcoe_boot_vlan "$1") || return 1
++    case "$vlan" in
++        "0") ;;
++
++        '')
++            return 1
++            ;;
++        [0-9]*)
++            printf "%s\n" "vlan=$dev.$vlan:$dev"
++            dev="$dev.$vlan"
++            ;;
++        *)
++            printf "%s\n" "vlan=$vlan:$dev"
++            dev="$vlan"
++            ;;
++    esac
+     # fcoe=eth0:nodcb
+     printf "fcoe=%s\n" "$dev:nodcb"
+     return 0

@@ -5,7 +5,7 @@
 # strip the automatically generated dep here and instead co-own the
 # directory.
 %global __requires_exclude pkg-config
-%define dist_free_release 228.git20230802
+%define dist_free_release 233.git20240115
 
 Name: dracut
 Version: 049
@@ -255,6 +255,11 @@ Patch224: 0224.patch
 Patch225: 0225.patch
 Patch226: 0226.patch
 Patch227: 0227.patch
+Patch228: 0228.patch
+Patch229: 0229.patch
+Patch230: 0230.patch
+Patch231: 0231.patch
+Patch232: 0232.patch
 
 Source1: https://www.gnu.org/licenses/lgpl-2.1.txt
 
@@ -710,6 +715,15 @@ echo '# Since rhel-8.3 dracut moved to use NetworkManager
 add_dracutmodules+=" network-legacy "' > /etc/dracut.conf.d/50-network-legacy.conf
 
 %changelog
+* Mon Jan 15 2024 Pavel Valena <pvalena@redhat.com> - 049-233.git20240115
+- fix(dracut.sh): remove microcode check based on
+- fix(qeth_rules): check the existence of
+
+* Thu Nov 16 2023 Pavel Valena <pvalena@redhat.com> - 049-231.git20231115
+- fix(iscsi): do not exit in handle_netroot() if discovery
+- feat(systemd): install systemd-sysroot-fstab-check
+- fix(fcoe-uefi): exit early on empty vlan
+
 * Wed Aug 02 2023 Lukas Nykryn <lnykryn@redhat.com> - 049-228.git20230802
 - feat(qemu): include the virtio_mem kernel module
 
