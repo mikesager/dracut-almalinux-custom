@@ -1,0 +1,26 @@
+From 2c33b7315571dd0fd8240111018ce474fc45f667 Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Thu, 13 Feb 2025 22:18:06 +0100
+Subject: [PATCH 12/13] fix(dracut-install): initize fts pointer
+
+Related: RHEL-65204
+---
+ src/install/dracut-install.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/install/dracut-install.c b/src/install/dracut-install.c
+index 96bc2eb6..3cd4e5cb 100644
+--- a/src/install/dracut-install.c
++++ b/src/install/dracut-install.c
+@@ -1681,7 +1681,7 @@ static void find_suppliers_for_sys_node(Hashmap *suppliers, const char *node_pat
+ 
+ static void find_suppliers(struct kmod_ctx *ctx)
+ {
+-        _cleanup_fts_close_ FTS *fts;
++        _cleanup_fts_close_ FTS *fts = NULL;
+         char *paths[] = { "/sys/devices/platform", NULL };
+         fts = fts_open(paths, FTS_NOSTAT | FTS_PHYSICAL, NULL);
+ 
+-- 
+2.47.1
+

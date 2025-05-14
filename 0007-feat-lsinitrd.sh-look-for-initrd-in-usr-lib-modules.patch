@@ -1,0 +1,38 @@
+From 9e9193f6da0348eb476c3aff6d066292b10cefe1 Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Fri, 16 Aug 2024 20:40:15 +0200
+Subject: [PATCH 07/13] feat(lsinitrd.sh): look for initrd in /usr/lib/modules/
+
+Introduce new path for lsinitrd.sh to look into:
+
+/usr/lib/modules/$kver/initramfs.img
+
+Which is valid on all ostree-based systems, and also other image based
+systems with pre-generated initramfs.
+
+Ref: https://issues.redhat.com/browse/RHEL-35890
+(cherry picked from commit 22ae6ecaf9ecdb9db3e79aa9a72d527e7436c282)
+
+Resolves: RHEL-54650
+---
+ lsinitrd.sh | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/lsinitrd.sh b/lsinitrd.sh
+index ac49b5d7..f8696e68 100755
+--- a/lsinitrd.sh
++++ b/lsinitrd.sh
+@@ -125,6 +125,10 @@ find_initrd_for_kernel_version() {
+         echo "/lib/modules/${kernel_version}/initrd"
+     elif [[ -f /lib/modules/${kernel_version}/initramfs.img ]]; then
+         echo "/lib/modules/${kernel_version}/initramfs.img"
++    elif [[ -f /usr/lib/modules/${kernel_version}/initrd ]]; then
++        echo "/usr/lib/modules/${kernel_version}/initrd"
++    elif [[ -f /usr/lib/modules/${kernel_version}/initramfs.img ]]; then
++        echo "/usr/lib/modules/${kernel_version}/initramfs.img"
+     elif [[ -f /boot/initramfs-${kernel_version}.img ]]; then
+         echo "/boot/initramfs-${kernel_version}.img"
+     else
+-- 
+2.47.1
+

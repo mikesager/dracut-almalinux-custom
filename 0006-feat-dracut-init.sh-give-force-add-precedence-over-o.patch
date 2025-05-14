@@ -1,0 +1,44 @@
+From 7fea469146481fdf30e6f2c933fa85426b6a2927 Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Sat, 17 Aug 2024 01:43:50 +0200
+Subject: [PATCH 06/13] feat(dracut-init.sh): give --force-add precedence over
+ --omit
+
+This gives precedence of force_add_dracutmodules to omit_dracutmodules,
+as there is not other way to override omit_dracutmodules list, and users
+would expect it to be overriden from command line.
+
+Ref: https://github.com/dracut-ng/dracut-ng/pull/569
+
+This way, `--add` retains it behaviour, and `--force-add` gains additional
+functionality in non-hostonly mode. The module may still be skipped
+if the module check returns 1, but it should throw error (as I'd expect
+for `--force-add`).
+
+(cherry picked commit a669346f48cbb3278c51ba5e95b1b91f9bfdee0a from PR#584)
+
+Resolves: RHEL-53791
+---
+ dracut-init.sh | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/dracut-init.sh b/dracut-init.sh
+index 1ce0d7ed..d78d3cd0 100755
+--- a/dracut-init.sh
++++ b/dracut-init.sh
+@@ -935,8 +935,10 @@ check_module() {
+     [[ $2 ]] || mods_checked_as_dep+=" $_mod "
+ 
+     if [[ " $omit_dracutmodules " == *\ $_mod\ * ]]; then
+-        ddebug "Module '$_mod' will not be installed, because it's in the list to be omitted!"
+-        return 1
++        if [[ " $force_add_dracutmodules " != *\ $_mod\ * ]]; then
++            ddebug "Module '$_mod' will not be installed, because it's in the list to be omitted!"
++            return 1
++        fi
+     fi
+ 
+     if [[ " $dracutmodules $add_dracutmodules $force_add_dracutmodules" == *\ $_mod\ * ]]; then
+-- 
+2.47.1
+

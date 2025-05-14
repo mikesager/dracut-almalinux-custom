@@ -1,0 +1,26 @@
+From a5e477c67c45b4439249ab92590f7b67dab4f7df Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Mon, 17 Feb 2025 06:58:26 +0100
+Subject: [PATCH 14/14] fix(openssl): harden ossl build CFLAGS
+
+Related: RHEL-76323
+---
+ src/ossl/Makefile | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ossl/Makefile b/src/ossl/Makefile
+index 17b418c2..200dcbb5 100644
+--- a/src/ossl/Makefile
++++ b/src/ossl/Makefile
+@@ -1,7 +1,7 @@
+ .PHONY: all clean tests
+ 
+ CFLAGS ?= -std=c99 -Wall -Werror -pedantic -D_XOPEN_SOURCE=600
+-CRYPTO_FLAGS = -lcrypto
++CRYPTO_FLAGS = -lcrypto -Wl,-pie -Wl,-z,now
+ TARGETS = src/ossl-config src/ossl-files
+ 
+ TESTS_CONFIG = $(wildcard tests/config/*.cnf)
+-- 
+2.47.1
+

@@ -1,0 +1,39 @@
+From 3e33ee5ce614059c9e4a81e8003df5142f1312c5 Mon Sep 17 00:00:00 2001
+From: Lukas Nykryn <lnykryn@redhat.com>
+Date: Mon, 19 Jul 2021 11:27:28 +0200
+Subject: [PATCH 05/13] fix(nfs): set correct ownership and permissions for
+ statd directory
+
+The directory ownership for the statd directory should be
+rpcuser:rpcuser.
+
+(cherry picked from commit ed5ab5787177f2be8a620a8d2d63a9ad26fbf149 from PR#583)
+
+Resolves: RHEL-53361
+---
+ modules.d/95nfs/module-setup.sh | 9 +++++++--
+ 1 file changed, 7 insertions(+), 2 deletions(-)
+
+diff --git a/modules.d/95nfs/module-setup.sh b/modules.d/95nfs/module-setup.sh
+index c6fdd506..e36cd144 100755
+--- a/modules.d/95nfs/module-setup.sh
++++ b/modules.d/95nfs/module-setup.sh
+@@ -120,8 +120,13 @@ install() {
+     mkdir -m 0755 -p "$initdir/var/lib/nfs"
+     mkdir -m 0755 -p "$initdir/var/lib/nfs/rpc_pipefs"
+     mkdir -m 0770 -p "$initdir/var/lib/rpcbind"
+-    [ -d "/var/lib/nfs/statd/sm" ] && mkdir -m 0755 -p "$initdir/var/lib/nfs/statd/sm"
+-    [ -d "/var/lib/nfs/sm" ] && mkdir -m 0755 -p "$initdir/var/lib/nfs/sm"
++    [ -d "$dracutsysrootdir/var/lib/nfs/statd/sm" ] \
++        && mkdir -m 0700 -p "$initdir/var/lib/nfs/statd" \
++        && mkdir -m 0755 -p "$initdir/var/lib/nfs/statd/sm" \
++        && chown -R rpcuser:rpcuser "$initdir/var/lib/nfs/statd"
++    [ -d "$dracutsysrootdir/var/lib/nfs/sm" ] \
++        && mkdir -m 0755 -p "$initdir/var/lib/nfs/sm" \
++        && chown -R rpcuser:rpcuser "$initdir/var/lib/nfs/sm"
+ 
+     # Rather than copy the passwd file in, just set a user for rpcbind
+     # We'll save the state and restart the daemon from the root anyway
+-- 
+2.47.1
+

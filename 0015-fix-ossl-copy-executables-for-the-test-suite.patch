@@ -1,0 +1,85 @@
+From d4b71c7fc24ba1245a86c41f904b05a18cbe3e15 Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Mon, 17 Feb 2025 17:31:35 +0100
+Subject: [PATCH 15/15] fix(ossl): copy executables for the test suite
+
+and also fix CFLAGS in case of std=c99.
+
+Related: RHEL-76323
+---
+ Makefile          | 20 ++++++++++++--------
+ src/ossl/Makefile |  2 +-
+ 2 files changed, 13 insertions(+), 9 deletions(-)
+
+diff --git a/Makefile b/Makefile
+index 4bc88561..51095b0a 100644
+--- a/Makefile
++++ b/Makefile
+@@ -88,11 +88,14 @@ util/util: $(UTIL_OBJECTS)
+ dracut-util: src/util/util
+ 	cp -a $< $@
+ 
+-ossl: src/ossl/Makefile
++ossl:
+ 	$(MAKE) -C src/ossl
+ 
+ ossl-config: ossl
++	cp -a src/ossl/src/ossl-config $@
++
+ ossl-files: ossl
++	cp -a src/ossl/src/ossl-files $@
+ 
+ .PHONY: indent-c
+ indent-c:
+@@ -205,20 +208,20 @@ endif
+ 			$(DESTDIR)$(systemdsystemunitdir)/initrd.target.wants/$$i; \
+ 		done \
+ 	fi
+-	if [ -f src/install/dracut-install ]; then \
++	if [ -r src/install/dracut-install ]; then \
+ 		install -m 0755 src/install/dracut-install $(DESTDIR)$(pkglibdir)/dracut-install; \
+ 	fi
+-	if [ -f src/skipcpio/skipcpio ]; then \
++	if [ -r src/skipcpio/skipcpio ]; then \
+ 		install -m 0755 src/skipcpio/skipcpio $(DESTDIR)$(pkglibdir)/skipcpio; \
+ 	fi
+-	if [ -f dracut-util ]; then \
++	if [ -r dracut-util ]; then \
+ 		install -m 0755 dracut-util $(DESTDIR)$(pkglibdir)/dracut-util; \
+ 	fi
+-	if [ -f src/ossl/src/ossl-config ]; then \
+-		install -m 0755 src/ossl/src/ossl-config $(DESTDIR)$(pkglibdir)/ossl-config; \
++	if [ -r ossl-config ]; then \
++		install -m 0755 ossl-config $(DESTDIR)$(pkglibdir)/ossl-config; \
+ 	fi
+-	if [ -f src/ossl/src/ossl-files ]; then \
+-		install -m 0755 src/ossl/src/ossl-files $(DESTDIR)$(pkglibdir)/ossl-files; \
++	if [ -r ossl-files ]; then \
++		install -m 0755 ossl-files $(DESTDIR)$(pkglibdir)/ossl-files; \
+ 	fi
+ ifeq ($(enable_dracut_cpio),yes)
+ 	install -m 0755 dracut-cpio $(DESTDIR)$(pkglibdir)/dracut-cpio
+@@ -245,6 +248,7 @@ clean:
+ 	$(RM) $(manpages)
+ 	$(RM) dracut.pc
+ 	$(RM) dracut-cpio src/dracut-cpio/target/release/dracut-cpio*
++	$(RM) ossl-files ossl-config
+ 	$(MAKE) -C test clean
+ 	$(MAKE) -C src/ossl clean
+ 
+diff --git a/src/ossl/Makefile b/src/ossl/Makefile
+index 200dcbb5..43e7b464 100644
+--- a/src/ossl/Makefile
++++ b/src/ossl/Makefile
+@@ -1,7 +1,7 @@
+ .PHONY: all clean tests
+ 
+ CFLAGS ?= -std=c99 -Wall -Werror -pedantic -D_XOPEN_SOURCE=600
+-CRYPTO_FLAGS = -lcrypto -Wl,-pie -Wl,-z,now
++CRYPTO_FLAGS = -lcrypto -Wl,-pie -Wl,-z,now -fPIE
+ TARGETS = src/ossl-config src/ossl-files
+ 
+ TESTS_CONFIG = $(wildcard tests/config/*.cnf)
+-- 
+2.47.1
+

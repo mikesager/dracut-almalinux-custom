@@ -1,0 +1,37 @@
+From 8f3b92db19bf4654d7346a1532928fcf172c09e6 Mon Sep 17 00:00:00 2001
+From: Manuel Fombuena <fombuena@outlook.com>
+Date: Thu, 31 Oct 2024 12:01:46 +0000
+Subject: [PATCH 10/13] fix(pcsc): add libpcsclite_real.so.*
+
+systemd-cryptsetup requires libpcsclite_real.so.1
+
+Without it you get the following error:
+
+systemd-cryptsetup[697]: loading "libpcsclite_real.so.1" failed: libpcsclite_real.so.1: cannot open shared object file: No such file or directory
+
+Signed-off-by: Manuel Fombuena <fombuena@outlook.com>
+
+(cherry picked from commit bfa00c2a03b07efae5a826aa881317acea9a4ec6)
+
+Related: RHEL-65204
+---
+ modules.d/91pcsc/module-setup.sh | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/modules.d/91pcsc/module-setup.sh b/modules.d/91pcsc/module-setup.sh
+index 26b463d4..5ae1272b 100755
+--- a/modules.d/91pcsc/module-setup.sh
++++ b/modules.d/91pcsc/module-setup.sh
+@@ -51,7 +51,8 @@ install() {
+         {"tls/$_arch/",tls/,"$_arch/",}"pcsc/drivers/ifd-ccid.bundle/Contents/Info.plist" \
+         {"tls/$_arch/",tls/,"$_arch/",}"pcsc/drivers/ifd-ccid.bundle/Contents/Linux/libccid.so" \
+         {"tls/$_arch/",tls/,"$_arch/",}"pcsc/drivers/serial/libccidtwin.so" \
+-        {"tls/$_arch/",tls/,"$_arch/",}"libpcsclite.so.*"
++        {"tls/$_arch/",tls/,"$_arch/",}"libpcsclite.so.*" \
++        {"tls/$_arch/",tls/,"$_arch/",}"libpcsclite_real.so.*"
+ 
+     # Install the hosts local user configurations if enabled.
+     if [[ $hostonly ]]; then
+-- 
+2.47.1
+
