@@ -1,7 +1,7 @@
-From 687582799c466e215229336ad6cf6dd3e050c326 Mon Sep 17 00:00:00 2001
+From 13333e5c47d8b9cadb8a1ba881a39c05be186553 Mon Sep 17 00:00:00 2001
 From: Pavel Valena <pvalena@redhat.com>
 Date: Thu, 6 Mar 2025 14:23:27 +0100
-Subject: [PATCH 16/16] fix(rescue): create hmac file for rescue kernel
+Subject: [PATCH 12/16] fix(rescue): create hmac file for rescue kernel
 
 Resolves: RHEL-59543
 ---
@@ -31,5 +31,5 @@ index 1be9b882..030f45ba 100755
              # shellcheck disable=SC2046
              dracut -f --no-hostonly --no-uefi \
 -- 
-2.48.1
+2.50.1
 

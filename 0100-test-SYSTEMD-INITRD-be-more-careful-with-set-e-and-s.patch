@@ -1,0 +1,59 @@
+From 7edb5a72481052de7da5827ddf2dcb665e5a4ca4 Mon Sep 17 00:00:00 2001
+From: Frantisek Sumsal <frantisek@sumsal.cz>
+Date: Wed, 6 Aug 2025 16:22:34 +0200
+Subject: [PATCH 29/30] test(SYSTEMD-INITRD): be more careful with `set -e` and
+ subshells
+
+When the condition in the subshell fails (i.e. none of the
+dracut*.service files is found), it doesn't trigger shell exit due to
+`set -e` as it's a part of a larger condition (&& ...), but since it's
+the last command of that subshell, it sets the subshell error code to 1.
+This is then treated by the parent shell as an error and the test is
+incorrectly interrupted and marked as failed.
+
+For comparison:
+
+$ (set -ex; echo begin; (for f in dracut*.service; do [[ -e "$f" ]] && echo fail; done); echo end); echo $?
++ echo begin
+begin
++ for f in dracut*.service
++ [[ -e dracut*.service ]]
+1
+
+$ (set -ex; echo begin; (for f in dracut*.service; do if [[ -e "$f" ]]; then echo nope; fi; done); echo end); echo $?
++ echo begin
+begin
++ for f in dracut*.service
++ [[ -e dracut*.service ]]
++ echo end
+end
+0
+
+Follow-up for 80350104949708c60806a255765e87d7b1d5a98c
+
+(cherry picked from commit 6fcb4f37b8c40a5085e631bf79f862b0f062ef1a)
+
+Resolves: RHEL-108215
+---
+ test/TEST-42-SYSTEMD-INITRD/test.sh | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/test/TEST-42-SYSTEMD-INITRD/test.sh b/test/TEST-42-SYSTEMD-INITRD/test.sh
+index 34ddcbd6..51dc82fb 100755
+--- a/test/TEST-42-SYSTEMD-INITRD/test.sh
++++ b/test/TEST-42-SYSTEMD-INITRD/test.sh
+@@ -90,7 +90,10 @@ test_setup() {
+     (
+         cd "$TESTDIR"/initrd/dracut.*/initramfs/usr/lib/systemd/system/
+         for f in dracut*.service; do
+-            [ -e "$f" ] && echo "unexpected dracut service found: $f" && return 1
++            if [ -e "$f" ]; then
++                echo "unexpected dracut service found: $f"
++                return 1
++            fi
+         done
+     )
+ 
+-- 
+2.50.1
+

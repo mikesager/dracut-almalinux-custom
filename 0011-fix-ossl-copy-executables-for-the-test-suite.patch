@@ -1,7 +1,7 @@
-From d4b71c7fc24ba1245a86c41f904b05a18cbe3e15 Mon Sep 17 00:00:00 2001
+From 1f5c47ebd37d4f493cb4eab6e955ca8e04c3ef89 Mon Sep 17 00:00:00 2001
 From: Pavel Valena <pvalena@redhat.com>
 Date: Mon, 17 Feb 2025 17:31:35 +0100
-Subject: [PATCH 15/15] fix(ossl): copy executables for the test suite
+Subject: [PATCH 11/16] fix(ossl): copy executables for the test suite
 
 and also fix CFLAGS in case of std=c99.
 
@@ -12,7 +12,7 @@ Related: RHEL-76323
  2 files changed, 13 insertions(+), 9 deletions(-)
 
 diff --git a/Makefile b/Makefile
-index 4bc88561..51095b0a 100644
+index f10f72d7..dd12e8cc 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -88,11 +88,14 @@ util/util: $(UTIL_OBJECTS)
@@ -31,7 +31,7 @@ index 4bc88561..51095b0a 100644
  
  .PHONY: indent-c
  indent-c:
-@@ -205,20 +208,20 @@ endif
+@@ -216,20 +219,20 @@ endif
  			$(DESTDIR)$(systemdsystemunitdir)/initrd.target.wants/$$i; \
  		done \
  	fi
@@ -59,10 +59,10 @@ index 4bc88561..51095b0a 100644
  	fi
  ifeq ($(enable_dracut_cpio),yes)
  	install -m 0755 dracut-cpio $(DESTDIR)$(pkglibdir)/dracut-cpio
-@@ -245,6 +248,7 @@ clean:
- 	$(RM) $(manpages)
+@@ -263,6 +266,7 @@ clean:
  	$(RM) dracut.pc
  	$(RM) dracut-cpio src/dracut-cpio/target/release/dracut-cpio*
+ 	$(RM) -rf build/ doc_site/modules/ROOT/pages/man/*
 +	$(RM) ossl-files ossl-config
  	$(MAKE) -C test clean
  	$(MAKE) -C src/ossl clean
@@ -81,5 +81,5 @@ index 200dcbb5..43e7b464 100644
  
  TESTS_CONFIG = $(wildcard tests/config/*.cnf)
 -- 
-2.47.1
+2.50.1
 

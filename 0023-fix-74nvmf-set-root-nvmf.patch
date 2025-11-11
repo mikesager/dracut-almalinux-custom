@@ -1,0 +1,38 @@
+From 575585575b6309fc3563e58856d6c8f54df0f4a1 Mon Sep 17 00:00:00 2001
+From: Tomas Bzatek <tbzatek@redhat.com>
+Date: Tue, 24 Jun 2025 16:50:31 +0200
+Subject: [PATCH 23/23] fix(74nvmf): set root=nvmf
+
+In a restricted image like kdump the kernel commandline argument root=
+is typically absent. However it is required by the 45net-lib/netroot.sh
+module that fails with:
+
+    [   23.599862] dracut: FATAL: No or empty root= argument
+    [   23.604956] dracut: Refusing to continue
+
+Inspired by the 74iscsi module, let's set it to root=nvmf if not set
+before.
+
+Signed-off-by: Tomas Bzatek <tbzatek@redhat.com>
+(cherry picked from commit a6dce328ea9738a558db848fa8dbed253b15ee3d)
+
+Resolves: RHEL-104223
+---
+ modules.d/95nvmf/parse-nvmf-boot-connections.sh | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/modules.d/95nvmf/parse-nvmf-boot-connections.sh b/modules.d/95nvmf/parse-nvmf-boot-connections.sh
+index aad2a458..5288553f 100755
+--- a/modules.d/95nvmf/parse-nvmf-boot-connections.sh
++++ b/modules.d/95nvmf/parse-nvmf-boot-connections.sh
+@@ -326,3 +326,7 @@ fi
+ 
+ /sbin/initqueue --settled --onetime --name nvmf-connect-settled /sbin/nvmf-autoconnect.sh settled
+ /sbin/initqueue --timeout --onetime --name nvmf-connect-timeout /sbin/nvmf-autoconnect.sh timeout
++
++# shellcheck disable=SC2034
++rootok=1
++[ -z "$root" ] && root="nvmf"
+-- 
+2.50.1
+

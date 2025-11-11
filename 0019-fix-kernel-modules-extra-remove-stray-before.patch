@@ -1,0 +1,31 @@
+From ad1ac0f85f4228ea25d38c8e50bf5ef0b59fadcf Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Mon, 4 Aug 2025 23:48:59 +0200
+Subject: [PATCH 19/20] fix(kernel-modules-extra): remove stray \ before /
+
+Fixes grep warning:
+```grep: warning: stray \ before /```
+
+Introduced in grep version 3.11.
+
+Resolves: RHEL-97473
+---
+ modules.d/90kernel-modules-extra/module-setup.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules.d/90kernel-modules-extra/module-setup.sh b/modules.d/90kernel-modules-extra/module-setup.sh
+index 85e2e0ad..c2809356 100755
+--- a/modules.d/90kernel-modules-extra/module-setup.sh
++++ b/modules.d/90kernel-modules-extra/module-setup.sh
+@@ -35,7 +35,7 @@ installkernel() {
+     # Escape a string for usage as a part of extended regular expression.
+     # $1 - string to escape
+     re_escape() {
+-        printf "%s" "$1" | sed 's/\([.+?^$\/\\|()\[]\|\]\)/\\\0/'
++        printf "%s" "$1" | sed 's/\([.+?^$\\|()\[]\|\]\)/\\\0/'
+     }
+ 
+     local cfg
+-- 
+2.50.1
+

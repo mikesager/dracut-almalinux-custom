@@ -1,7 +1,7 @@
-From a5e477c67c45b4439249ab92590f7b67dab4f7df Mon Sep 17 00:00:00 2001
+From 18de7972b688001e73924a693d0bcd8c83e79f06 Mon Sep 17 00:00:00 2001
 From: Pavel Valena <pvalena@redhat.com>
 Date: Mon, 17 Feb 2025 06:58:26 +0100
-Subject: [PATCH 14/14] fix(openssl): harden ossl build CFLAGS
+Subject: [PATCH 10/16] fix(openssl): harden ossl build CFLAGS
 
 Related: RHEL-76323
 ---
@@ -22,5 +22,5 @@ index 17b418c2..200dcbb5 100644
  
  TESTS_CONFIG = $(wildcard tests/config/*.cnf)
 -- 
-2.47.1
+2.50.1
 

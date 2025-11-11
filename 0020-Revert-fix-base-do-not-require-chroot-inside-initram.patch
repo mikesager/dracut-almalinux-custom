@@ -1,0 +1,30 @@
+From 6fe66a3d55682de7dc24ee8be31752ae2ea08082 Mon Sep 17 00:00:00 2001
+From: Pavel Valena <pvalena@redhat.com>
+Date: Tue, 5 Aug 2025 00:00:30 +0200
+Subject: [PATCH 20/20] Revert "fix(base): do not require chroot inside
+ initramfs"
+
+This reverts commit 518133714b769160448a51c512d5e152ea6332da.
+
+rhel-only
+
+Resolves: RHEL-93173
+---
+ modules.d/99base/module-setup.sh | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/modules.d/99base/module-setup.sh b/modules.d/99base/module-setup.sh
+index 7292ba71..9403706a 100755
+--- a/modules.d/99base/module-setup.sh
++++ b/modules.d/99base/module-setup.sh
+@@ -9,6 +9,7 @@ depends() {
+ # called by dracut
+ install() {
+     inst_multiple \
++        chroot \
+         cp \
+         dmesg \
+         flock \
+-- 
+2.50.1
+

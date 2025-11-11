@@ -1,7 +1,7 @@
-From c41f441214a98284475f0965973c3541bd158df7 Mon Sep 17 00:00:00 2001
+From 456b922e1610316d3b5980a9749eee62b9b0db34 Mon Sep 17 00:00:00 2001
 From: Pavel Valena <pvalena@redhat.com>
 Date: Mon, 19 Aug 2024 09:41:27 +0200
-Subject: [PATCH 08/13] feat(fips): include fips module unconditionally
+Subject: [PATCH 06/16] feat(fips): include fips module unconditionally
 
 rhel-only
 
@@ -11,7 +11,7 @@ Resolves: RHEL-39404
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/modules.d/01fips/module-setup.sh b/modules.d/01fips/module-setup.sh
-index a497ac5c..e3b7ca33 100755
+index ed4ef20b..60b044ed 100755
 --- a/modules.d/01fips/module-setup.sh
 +++ b/modules.d/01fips/module-setup.sh
 @@ -2,7 +2,7 @@
@@ -24,5 +24,5 @@ index a497ac5c..e3b7ca33 100755
  
  # called by dracut
 -- 
-2.47.1
+2.50.1
 

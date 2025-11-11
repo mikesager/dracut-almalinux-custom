@@ -1,7 +1,7 @@
-From 73122f8b3430e8ecab30a5c261391081f8289d31 Mon Sep 17 00:00:00 2001
+From df9c56dd26d9a31ad9045e7b2ca00e0b366d56a8 Mon Sep 17 00:00:00 2001
 From: Pavel Valena <pvalena@redhat.com>
 Date: Mon, 20 Jan 2025 14:16:38 +0100
-Subject: [PATCH 13/13] feat: add openssl module
+Subject: [PATCH 09/16] feat: add openssl module
 
 Resolves: RHEL-76323
 ---
@@ -60,12 +60,12 @@ Resolves: RHEL-76323
  create mode 100644 src/ossl/tests/files/providers.cnf.expected
 
 diff --git a/Makefile b/Makefile
-index bcb2bc8f..4bc88561 100644
+index 5ce30d5f..f10f72d7 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -50,7 +50,7 @@ manpages = $(man1pages) $(man5pages) $(man7pages) $(man8pages)
  
- .PHONY: install clean archive testimage test all check AUTHORS CONTRIBUTORS doc
+ .PHONY: install clean archive test all check AUTHORS CONTRIBUTORS doc
  
 -all: dracut.pc dracut-install src/skipcpio/skipcpio dracut-util
 +all: dracut.pc dracut-install src/skipcpio/skipcpio dracut-util ossl-config ossl-files
@@ -85,7 +85,7 @@ index bcb2bc8f..4bc88561 100644
  .PHONY: indent-c
  indent-c:
  	astyle -n --quiet --options=.astylerc $(wildcard *.[ch] */*.[ch] src/*/*.[ch])
-@@ -208,6 +214,12 @@ endif
+@@ -219,6 +225,12 @@ endif
  	if [ -f dracut-util ]; then \
  		install -m 0755 dracut-util $(DESTDIR)$(pkglibdir)/dracut-util; \
  	fi
@@ -98,16 +98,16 @@ index bcb2bc8f..4bc88561 100644
  ifeq ($(enable_dracut_cpio),yes)
  	install -m 0755 dracut-cpio $(DESTDIR)$(pkglibdir)/dracut-cpio
  endif
-@@ -234,6 +246,7 @@ clean:
- 	$(RM) dracut.pc
+@@ -252,6 +264,7 @@ clean:
  	$(RM) dracut-cpio src/dracut-cpio/target/release/dracut-cpio*
+ 	$(RM) -rf build/ doc_site/modules/ROOT/pages/man/*
  	$(MAKE) -C test clean
 +	$(MAKE) -C src/ossl clean
  
  syncheck:
  	@ret=0;for i in dracut-initramfs-restore.sh modules.d/*/*.sh; do \
 diff --git a/modules.d/01fips/module-setup.sh b/modules.d/01fips/module-setup.sh
-index e3b7ca33..206f0456 100755
+index 60b044ed..dc9b7fdd 100755
 --- a/modules.d/01fips/module-setup.sh
 +++ b/modules.d/01fips/module-setup.sh
 @@ -5,6 +5,10 @@ check() {
@@ -1017,5 +1017,5 @@ index 00000000..23b1b7de
 +/usr/lib64/ossl-modules/pkcs11.so
 +/usr/lib64/ossl-modules/oqsprovider.so.0.6.0
 -- 
-2.47.1
+2.50.1
 

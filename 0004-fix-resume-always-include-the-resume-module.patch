@@ -1,7 +1,7 @@
-From 67654956c27c159e29701a2b9fd9430d372a9f91 Mon Sep 17 00:00:00 2001
+From 8b0520da9fd68cfb47a128610949636ec88876ef Mon Sep 17 00:00:00 2001
 From: Pavel Valena <pvalena@redhat.com>
 Date: Thu, 8 Aug 2024 00:21:12 +0200
-Subject: [PATCH 04/13] fix(resume): always include the resume module
+Subject: [PATCH 04/16] fix(resume): always include the resume module
 
 as we can't determine with certainity that it won't be needed.
 
@@ -47,5 +47,5 @@ index d419566e..785f681a 100755
              if [[ -f /sys/power/resume ]]; then
                  if [[ "$(< /sys/power/resume)" == "0:0" ]]; then
 -- 
-2.47.1
+2.50.1
 

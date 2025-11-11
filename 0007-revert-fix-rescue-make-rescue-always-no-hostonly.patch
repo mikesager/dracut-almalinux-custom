@@ -1,7 +1,7 @@
-From ad4549b5e8fb66ee33126ba01bbb24f4801a3936 Mon Sep 17 00:00:00 2001
+From ea8bbaac7b4e0d91acc2d1a192d87b3f328e5808 Mon Sep 17 00:00:00 2001
 From: Pavel Valena <pvalena@redhat.com>
 Date: Wed, 29 Jan 2025 20:25:03 +0100
-Subject: [PATCH 11/13] revert: "fix(rescue): make rescue always no-hostonly"
+Subject: [PATCH 07/16] revert: "fix(rescue): make rescue always no-hostonly"
 
 This partly reverts commit 224c00914bfb4ba1dee48e094ebb137facfd5947.
 
@@ -26,5 +26,5 @@ index decee283..1be9b882 100755
                  --kver "$KERNEL_VERSION" \
                  "$BOOT_DIR_ABS/$INITRD"
 -- 
-2.47.1
+2.50.1
 

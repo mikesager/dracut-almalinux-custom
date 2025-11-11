@@ -1,7 +1,7 @@
-From 07151e560561b415f7e016362ab1d180b13f33fb Mon Sep 17 00:00:00 2001
+From a9afc62a54034b452c974a2c6dfa959031566e61 Mon Sep 17 00:00:00 2001
 From: Pavel Valena <pvalena@redhat.com>
 Date: Wed, 12 Jun 2024 06:30:42 +0200
-Subject: [PATCH 01/13] revert: "fix(install.d): correctly install pre-genned
+Subject: [PATCH 01/16] revert: "fix(install.d): correctly install pre-genned
  image and die if no args"
 
 revert: "fix(install.d): simplify and use what kernel-install gives us"
@@ -15,12 +15,12 @@ https://github.com/dracut-ng/dracut-ng/issues/334
 This is temporary, until the `20-grub.install` will be able to handle initrd
 from kernel staging area.
 ---
- install.d/50-dracut.install        | 152 ++++++++++++++++++-----------
+ install.d/50-dracut.install        | 153 ++++++++++++++++++-----------
  install.d/51-dracut-rescue.install |  22 +----
- 2 files changed, 97 insertions(+), 77 deletions(-)
+ 2 files changed, 97 insertions(+), 78 deletions(-)
 
 diff --git a/install.d/50-dracut.install b/install.d/50-dracut.install
-index 14f87721..441414ac 100755
+index 6019e8d8..441414ac 100755
 --- a/install.d/50-dracut.install
 +++ b/install.d/50-dracut.install
 @@ -1,13 +1,13 @@
@@ -42,7 +42,7 @@ index 14f87721..441414ac 100755
      exit 0
  fi
  
-@@ -16,64 +16,102 @@ if [[ "$KERNEL_INSTALL_IMAGE_TYPE" = "uki" ]]; then
+@@ -16,65 +16,102 @@ if [[ "$KERNEL_INSTALL_IMAGE_TYPE" = "uki" ]]; then
      exit 0
  fi
  
@@ -190,6 +190,7 @@ index 14f87721..441414ac 100755
  
 -# shellcheck disable=SC2046
 -dracut -f \
+-    --add-confdir hostonly \
 -    ${noimageifnotneeded:+--noimageifnotneeded} \
 -    $([[ $KERNEL_INSTALL_VERBOSE == 1 ]] && echo --verbose) \
 -    $([[ -n $KERNEL_IMAGE ]] && echo --kernel-image "$KERNEL_IMAGE") \
@@ -234,5 +235,5 @@ index 4ec9e3c5..9312e242 100755
      suffix=$1
      shift
 -- 
-2.47.1
+2.50.1
 

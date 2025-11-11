@@ -7,8 +7,8 @@
 %global __requires_exclude pkg-config
 
 Name: dracut
-Version: 105
-Release: 4%{?dist}
+Version: 107
+Release: 3%{?dist}
 
 Summary: Initramfs generator using udev
 
@@ -34,42 +34,71 @@ Patch3:  0003-fix-kernel-install-do-not-generate-an-initrd-when-on.patch
 # fix(resume): always include the resume module
 # Author: Pavel Valena <pvalena@redhat.com>
 Patch4:  0004-fix-resume-always-include-the-resume-module.patch
-# fix(nfs): set correct ownership and permissions for statd directory
-# Author: Lukas Nykryn <lnykryn@redhat.com>
-Patch5:  0005-fix-nfs-set-correct-ownership-and-permissions-for-st.patch
-# feat(dracut-init.sh): give --force-add precedence over --omit
-# Author: Pavel Valena <pvalena@redhat.com>
-Patch6:  0006-feat-dracut-init.sh-give-force-add-precedence-over-o.patch
 # feat(lsinitrd.sh): look for initrd in /usr/lib/modules/
 # Author: Pavel Valena <pvalena@redhat.com>
-Patch7:  0007-feat-lsinitrd.sh-look-for-initrd-in-usr-lib-modules.patch
+Patch5:  0005-feat-lsinitrd.sh-look-for-initrd-in-usr-lib-modules.patch
 # feat(fips): include fips module unconditionally
 # Author: Pavel Valena <pvalena@redhat.com>
-Patch8:  0008-feat-fips-include-fips-module-unconditionally.patch
-# fix(systemd-ask-password): do not half-install systemd-ask-password-wall
-# Author: Jo Zzsi <jozzsicsataban@gmail.com>
-Patch9:  0009-fix-systemd-ask-password-do-not-half-install-systemd.patch
-# fix(pcsc): add libpcsclite_real.so.*
-# Author: Manuel Fombuena <fombuena@outlook.com>
-Patch10: 0010-fix-pcsc-add-libpcsclite_real.so.patch
+Patch6:  0006-feat-fips-include-fips-module-unconditionally.patch
 # revert: "fix(rescue): make rescue always no-hostonly"
 # Author: Pavel Valena <pvalena@redhat.com>
-Patch11: 0011-revert-fix-rescue-make-rescue-always-no-hostonly.patch
+Patch7:  0007-revert-fix-rescue-make-rescue-always-no-hostonly.patch
 # fix(dracut-install): initize fts pointer
 # Author: Pavel Valena <pvalena@redhat.com>
-Patch12: 0012-fix-dracut-install-initize-fts-pointer.patch
+Patch8:  0008-fix-dracut-install-initize-fts-pointer.patch
 # feat: add openssl module
 # Author: Pavel Valena <pvalena@redhat.com>
-Patch13: 0013-feat-add-openssl-module.patch
+Patch9:  0009-feat-add-openssl-module.patch
 # fix(openssl): harden ossl build CFLAGS
 # Author: Pavel Valena <pvalena@redhat.com>
-Patch14: 0014-fix-openssl-harden-ossl-build-CFLAGS.patch
+Patch10: 0010-fix-openssl-harden-ossl-build-CFLAGS.patch
 # fix(ossl): copy executables for the test suite
 # Author: Pavel Valena <pvalena@redhat.com>
-Patch15: 0015-fix-ossl-copy-executables-for-the-test-suite.patch
+Patch11: 0011-fix-ossl-copy-executables-for-the-test-suite.patch
 # fix(rescue): create hmac file for rescue kernel
 # Author: Pavel Valena <pvalena@redhat.com>
-Patch16: 0016-fix-rescue-create-hmac-file-for-rescue-kernel.patch
+Patch12: 0012-fix-rescue-create-hmac-file-for-rescue-kernel.patch
+# Revert "feat(systemd-sysusers): run systemd-sysusers as part
+# Author: Adam Williamson <awilliam@redhat.com>
+Patch13: 0013-Revert-feat-systemd-sysusers-run-systemd-sysusers-as.patch
+# Revert "chore: remove unused function"
+# Author: Adam Williamson <awilliam@redhat.com>
+Patch14: 0014-Revert-chore-remove-unused-function.patch
+# fix(ossl): ignore compiler warnings
+# Author: Pavel Valena <pvalena@redhat.com>
+Patch15: 0015-fix-ossl-ignore-compiler-warnings.patch
+# fix: improve hostonly sloppy mode
+# Author: Jo Zzsi <jozzsicsataban@gmail.com>
+Patch16: 0016-fix-improve-hostonly-sloppy-mode.patch
+# fix(dracut.sh): don't pass empty string as dir
+# Author: David Tardon <dtardon@redhat.com>
+Patch17: 0017-fix-dracut.sh-don-t-pass-empty-string-as-dir.patch
+# feat(systemd): drop unnecessary dependency on libgcrypt
+# Author: Pavel Valena <pvalena@redhat.com>
+Patch18: 0018-feat-systemd-drop-unnecessary-dependency-on-libgcryp.patch
+# fix(kernel-modules-extra): remove stray \ before /
+# Author: Pavel Valena <pvalena@redhat.com>
+Patch19: 0019-fix-kernel-modules-extra-remove-stray-before.patch
+# Revert "fix(base): do not require chroot inside initramfs"
+# Author: Pavel Valena <pvalena@redhat.com>
+Patch20: 0020-Revert-fix-base-do-not-require-chroot-inside-initram.patch
+# fix: let check_vol_slaves_all return 1 when checks on all slaves fail
+# Author: Coiby Xu <coxu@redhat.com>
+Patch21: 0021-fix-let-check_vol_slaves_all-return-1-when-checks-on.patch
+# improvement(74nvmf): lookup required NIC kernel modules for NBFT interfaces
+# Author: Tomas Bzatek <tbzatek@redhat.com>
+Patch22: 0022-improvement-74nvmf-lookup-required-NIC-kernel-module.patch
+# fix(74nvmf): set root=nvmf
+# Author: Tomas Bzatek <tbzatek@redhat.com>
+Patch23: 0023-fix-74nvmf-set-root-nvmf.patch
+
+
+# test(SYSTEMD-INITRD): be more careful with `set -e` and subshells
+# Author: Frantisek Sumsal <frantisek@sumsal.cz>
+Patch100: 0100-test-SYSTEMD-INITRD-be-more-careful-with-set-e-and-s.patch
+# test: use network instead of network-legacy
+# Author: Pavel Valena <pvalena@redhat.com>
+#Patch102: 0102-test-use-network-instead-of-network-legacy.patch
 
 # Please use source-git to work with this spec file:
 # HowTo: https://packit.dev/source-git/work-with-source-git
@@ -208,6 +237,7 @@ cp %{SOURCE1} .
 %configure  --systemdsystemunitdir=%{_unitdir} \
             --bashcompletiondir=$(pkg-config --variable=completionsdir bash-completion) \
             --libdir=%{_prefix}/lib \
+            --disable-dracut-cpio \
 %if %{without doc}
             --disable-documentation \
 %endif
@@ -266,7 +296,7 @@ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/
 
 %files
 %if %{with doc}
-%doc README.md docs/HACKING.md AUTHORS NEWS.md dracut.html docs/dracut.png docs/dracut.svg
+%doc README.md AUTHORS NEWS.md
 %endif
 %license COPYING lgpl-2.1.txt
 %{_bindir}/dracut
@@ -305,7 +335,6 @@ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/
 %endif
 
 %{dracutlibdir}/modules.d/00bash
-%{dracutlibdir}/modules.d/00shell-interpreter
 %{dracutlibdir}/modules.d/00systemd
 %{dracutlibdir}/modules.d/00systemd-network-management
 %ifnarch s390 s390x
@@ -316,6 +345,7 @@ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/
 %{dracutlibdir}/modules.d/01systemd-ac-power
 %{dracutlibdir}/modules.d/01systemd-ask-password
 %{dracutlibdir}/modules.d/01systemd-bsod
+%{dracutlibdir}/modules.d/01systemd-battery-check
 %{dracutlibdir}/modules.d/01systemd-coredump
 %{dracutlibdir}/modules.d/01systemd-creds
 %{dracutlibdir}/modules.d/01systemd-cryptsetup
@@ -348,10 +378,11 @@ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/
 %{dracutlibdir}/modules.d/09dbus
 %{dracutlibdir}/modules.d/10i18n
 %{dracutlibdir}/modules.d/30convertfs
+%{dracutlibdir}/modules.d/45drm
+%{dracutlibdir}/modules.d/45simpledrm
 %{dracutlibdir}/modules.d/45net-lib
+%{dracutlibdir}/modules.d/45plymouth
 %{dracutlibdir}/modules.d/45url-lib
-%{dracutlibdir}/modules.d/50drm
-%{dracutlibdir}/modules.d/50plymouth
 %{dracutlibdir}/modules.d/62bluetooth
 %{dracutlibdir}/modules.d/80lvmmerge
 %{dracutlibdir}/modules.d/80lvmthinpool-monitor
@@ -399,6 +430,7 @@ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/
 %{dracutlibdir}/modules.d/97masterkey
 %{dracutlibdir}/modules.d/98integrity
 %{dracutlibdir}/modules.d/97biosdevname
+%{dracutlibdir}/modules.d/97systemd-emergency
 %{dracutlibdir}/modules.d/98dracut-systemd
 %{dracutlibdir}/modules.d/98ecryptfs
 %{dracutlibdir}/modules.d/98pollcdrom
@@ -411,6 +443,7 @@ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/
 %{dracutlibdir}/modules.d/99fs-lib
 %{dracutlibdir}/modules.d/99openssl
 %{dracutlibdir}/modules.d/99shutdown
+%{dracutlibdir}/modules.d/99shell-interpreter
 %attr(0644,root,root) %ghost %config(missingok,noreplace) %{_localstatedir}/log/dracut.log
 %dir %{_sharedstatedir}/initramfs
 %if %{defined _unitdir}
@@ -476,9 +509,9 @@ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/
 
 %files squash
 %{dracutlibdir}/modules.d/99squash
-%{dracutlibdir}/modules.d/99squash-lib
 %{dracutlibdir}/modules.d/95squash-erofs
 %{dracutlibdir}/modules.d/95squash-squashfs
+%{dracutlibdir}/modules.d/99squash-lib
 
 %files config-generic
 %{dracutlibdir}/dracut.conf.d/02-generic-image.conf
@@ -488,6 +521,26 @@ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/
 %{_prefix}/lib/kernel/install.d/51-dracut-rescue.install
 
 %changelog
+* Mon Aug 18 2025 Pavel Valena <pvalena@redhat.com> - 107-3
+- test(SYSTEMD-INITRD): be more careful with `set -e` and subshells
+- test: fixup NFS test.sh
+  Resolves: RHEL-108215,RHEL-97473
+
+* Thu Aug 07 2025 Pavel Valena <pvalena@redhat.com> - 107-2
+- fix: improve hostonly sloppy mode
+- fix(dracut.sh): don't pass empty string as dir
+- feat(systemd): drop unnecessary dependency on libgcrypt
+- fix(kernel-modules-extra): remove stray  before /
+- Revert "fix(base): do not require chroot inside initramfs"
+- fix: let check_vol_slaves_all return 1 when checks on all slaves fail
+- improvement(74nvmf): lookup required NIC kernel modules for NBFT interfaces
+- fix(74nvmf): set root=nvmf
+  Resolves: RHEL-104223,RHEL-93173,RHEL-95542,RHEL-95897
+
+* Thu Jul 17 2025 Pavel Valena <pvalena@redhat.com> - 107-1
+- Upgrade to dracut 107
+  Resolves: RHEL-97473
+
 * Thu Mar 06 2025 Pavel Valena <pvalena@redhat.com> - 105-4
 - fix(rescue): create hmac file for rescue kernel
 

@@ -1,0 +1,55 @@
+From f7c8c809798d5980d182509f9e1a448a7c65af73 Mon Sep 17 00:00:00 2001
+From: Coiby Xu <coxu@redhat.com>
+Date: Mon, 26 May 2025 15:34:30 +0800
+Subject: [PATCH 21/23] fix: let check_vol_slaves_all return 1 when checks on
+ all slaves fail
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Currently check_vol_slaves_all return 0 even after checks on all slaves
+fail. And this leads to an issue that "dracut -hostonly-mode strict"
+gets stuck forever because instmods keeps waiting for user input when
+it's passed empty argument in the kernel-modules module.
+
+Fixes: c7c8c498 ("dracut-functions.sh: catch all lvm slaves")
+Reported-by: Tomáš Bžatek <tbzatek@redhat.com>
+Signed-off-by: Coiby Xu <coxu@redhat.com>
+
+(cherry picked from commit 1fcfb2bffdad22873a804043eeeb9bb65a99caa8)
+
+Resolves: RHEL-104223
+---
+ dracut-functions.sh | 7 +++----
+ 1 file changed, 3 insertions(+), 4 deletions(-)
+
+diff --git a/dracut-functions.sh b/dracut-functions.sh
+index 94f0228f..8eadc345 100755
+--- a/dracut-functions.sh
++++ b/dracut-functions.sh
+@@ -685,7 +685,7 @@ check_vol_slaves() {
+ }
+ 
+ check_vol_slaves_all() {
+-    local _vg _pv _majmin _dm
++    local _vg _pv _majmin _dm _ret=1
+     _majmin="$2"
+     _dm=$(get_lvm_dm_dev "$_majmin")
+     [[ -z $_dm ]] && return 1 # not an LVM device-mapper device
+@@ -699,11 +699,10 @@ check_vol_slaves_all() {
+         fi
+ 
+         for _pv in $(lvm vgs --noheadings -o pv_name "$_vg" 2> /dev/null); do
+-            check_block_and_slaves_all "$1" "$(get_maj_min "$_pv")"
++            check_block_and_slaves_all "$1" "$(get_maj_min "$_pv")" && _ret=0
+         done
+-        return 0
+     fi
+-    return 1
++    return $_ret
+ }
+ 
+ # fs_get_option <filesystem options> <search for option>
+-- 
+2.50.1
+

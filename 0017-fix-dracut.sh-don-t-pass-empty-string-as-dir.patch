@@ -1,0 +1,36 @@
+From dcd5368818a3a428c1e86690ef26ba8e3e887014 Mon Sep 17 00:00:00 2001
+From: David Tardon <dtardon@redhat.com>
+Date: Tue, 20 May 2025 09:31:52 +0200
+Subject: [PATCH 17/20] fix(dracut.sh): don't pass empty string as dir
+
+That causes dropindirs_sort() to look for .conf files in / due to
+expansion:
+
+    for d in "$@"; do
+        for i in "$d/"*"$suffix"; do
+
+Fixes #1275
+
+(cherry picked from commit 000cfa0c278c0858e81c8dd2ff7231f069f0afb1)
+
+Resolves: RHEL-95897
+---
+ dracut.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/dracut.sh b/dracut.sh
+index c2b2c949..3b8b0435 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -972,7 +972,7 @@ if [[ -f $conffile ]]; then
+ fi
+ 
+ # source our config dir
+-for f in $(dropindirs_sort ".conf" "$confdir" "$add_confdir" "$dracutbasedir/dracut.conf.d"); do
++for f in $(dropindirs_sort ".conf" "$confdir" ${add_confdir:+"$add_confdir"} "$dracutbasedir/dracut.conf.d"); do
+     check_conf_file "$f"
+     # shellcheck disable=SC1090
+     [[ -e $f ]] && . "$f"
+-- 
+2.50.1
+
