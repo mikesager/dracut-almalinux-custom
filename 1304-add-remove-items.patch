@@ -1,0 +1,101 @@
+From 6cc6d5a0c24ee88cd2824f45c56ce0c7131efffb Mon Sep 17 00:00:00 2001
+From: Jo Zzsi <jozzsicsataban@gmail.com>
+Date: Sun, 27 Apr 2025 16:01:27 -0400
+Subject: [PATCH] feat: add support for removing a space separated list of
+ files
+
+Fixes: https://github.com/dracut-ng/dracut-ng/issues/1297
+---
+ dracut.sh              | 14 ++++++++++++++
+ man/dracut.8.adoc      |  3 +++
+ man/dracut.conf.5.adoc |  7 +++++++
+ 3 files changed, 24 insertions(+)
+
+diff --git a/dracut.sh b/dracut.sh
+index c2b2c949..aeb9ea50 100755
+--- a/dracut.sh
++++ b/dracut.sh
+@@ -233,6 +233,8 @@ Creates initial ramdisk images for preloading modules
+                          in the final initramfs.
+   -I, --install [LIST]  Install the space separated list of files into the
+                          initramfs.
++  --remove      [LIST]  Remove a space-separated list of files and directories
++                        from the initramfs.
+   --install-optional [LIST]
+                         Install the space separated list of files into the
+                          initramfs, if they exist.
+@@ -484,6 +486,7 @@ rearrange_params() {
+             --long hostonly-nics: \
+             --long no-machineid \
+             --long version \
++            --long remove: \
+             -- "$@"
+     )
+ 
+@@ -631,6 +634,11 @@ while :; do
+             PARMS_TO_STORE+=" '$2'"
+             shift
+             ;;
++        --remove)
++            remove_items_l+=("$2")
++            PARMS_TO_STORE+=" '$2'"
++            shift
++            ;;
+         --install-optional)
+             install_optional_items_l+=("$2")
+             PARMS_TO_STORE+=" '$2'"
+@@ -1059,6 +1067,7 @@ export SYSTEMCTL=${SYSTEMCTL:-systemctl}
+ ((${#fscks_l[@]})) && fscks+=" ${fscks_l[*]} "
+ ((${#add_fstab_l[@]})) && add_fstab+=" ${add_fstab_l[*]} "
+ ((${#install_items_l[@]})) && install_items+=" ${install_items_l[*]} "
++((${#remove_items_l[@]})) && remove_items+=" ${remove_items_l[*]} "
+ ((${#install_optional_items_l[@]})) && install_optional_items+=" ${install_optional_items_l[*]} "
+ ((${#hostonly_nics_l[@]})) && hostonly_nics+=" ${hostonly_nics_l[*]} "
+ 
+@@ -2373,6 +2382,11 @@ if dracut_module_included "squash-lib"; then
+     compress="cat"
+ fi
+ 
++# remove items
++for items in $remove_items; do
++    rm -rf -- "${initdir:?}/${items:?}"
++done
++
+ # protect existing output file against build errors
+ if [[ -e $outfile ]]; then
+     outfile_final="$outfile"
+diff --git a/man/dracut.8.adoc b/man/dracut.8.adoc
+index a6d044a9..a3b2abe2 100644
+--- a/man/dracut.8.adoc
++++ b/man/dracut.8.adoc
+@@ -452,6 +452,9 @@ example:
+ ----
+ ===============================
+ 
++**--remove** _<file/dir list>_::
++    Remove a space-separated list of files and directories from the initramfs.
++
+ **--install-optional** _<file list>_::
+     Install the space separated list of files into the initramfs, if they exist.
+ 
+diff --git a/man/dracut.conf.5.adoc b/man/dracut.conf.5.adoc
+index ae8a6903..b861cc7d 100644
+--- a/man/dracut.conf.5.adoc
++++ b/man/dracut.conf.5.adoc
+@@ -92,6 +92,13 @@ Specify a space-separated list of directories where to look for libraries.
+ *install_items+=*" __<file>__[ __<file>__ ...] "::
+ Specify additional files to include in the initramfs, separated by spaces.
+ 
++*remove_items+=*" __<file/dir>__[ __<file/dir>__ ...] "::
++Specify additional files or directories to remove from the generated initramfs,
++separated by spaces.
++Warning: Avoid manually removing files or directories, as you may inadvertently
++remove essential ones that dracut won't detect or warn you about.
++Using this option is not recommended and is at your own risk.
++
+ *install_optional_items+=*" __<file>__[ __<file>__ ...] "::
+ Specify additional files to include in the initramfs, separated by spaces,
+ if they exist.
+-- 
+2.52.0
+

@@ -9,7 +9,7 @@
 Name: dracut
 Version: 107
 #Release: 3%{?dist}
-Release: 3.mjs
+Release: 4.mjs
 
 Summary: Initramfs generator using udev
 
@@ -92,7 +92,8 @@ Patch22: 0022-improvement-74nvmf-lookup-required-NIC-kernel-module.patch
 # fix(74nvmf): set root=nvmf
 # Author: Tomas Bzatek <tbzatek@redhat.com>
 Patch23: 0023-fix-74nvmf-set-root-nvmf.patch
-
+# Author: Jo Zzsi <jozzsicsataban@gmail.com>
+Patch1304: 1304-add-remove-items.patch
 
 # test(SYSTEMD-INITRD): be more careful with `set -e` and subshells
 # Author: Frantisek Sumsal <frantisek@sumsal.cz>
@@ -100,6 +101,8 @@ Patch100: 0100-test-SYSTEMD-INITRD-be-more-careful-with-set-e-and-s.patch
 # test: use network instead of network-legacy
 # Author: Pavel Valena <pvalena@redhat.com>
 #Patch102: 0102-test-use-network-instead-of-network-legacy.patch
+
+
 
 # Please use source-git to work with this spec file:
 # HowTo: https://packit.dev/source-git/work-with-source-git
