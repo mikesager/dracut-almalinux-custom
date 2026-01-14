@@ -8,7 +8,8 @@
 
 Name: dracut
 Version: 107
-Release: 3%{?dist}
+#Release: 3%{?dist}
+Release: 3.mjs
 
 Summary: Initramfs generator using udev
 
@@ -158,6 +159,7 @@ package.
 %package network
 Summary: dracut modules to build a dracut initramfs with network support
 Requires: %{name} = %{version}-%{release}
+Requires: dhclient
 Requires: iputils
 Requires: iproute
 Requires: jq
@@ -258,7 +260,7 @@ rm -fr -- $RPM_BUILD_ROOT/%{dracutlibdir}/modules.d/00dash
 rm -fr -- $RPM_BUILD_ROOT/%{dracutlibdir}/modules.d/00mksh
 
 # Remove obsolete module
-rm -fr -- $RPM_BUILD_ROOT/%{dracutlibdir}/modules.d/35network-legacy
+#rm -fr -- $RPM_BUILD_ROOT/%{dracutlibdir}/modules.d/35network-legacy
 
 %ifnarch s390 s390x
 # remove architecture specific modules
@@ -470,6 +472,7 @@ echo 'dracut_rescue_image="yes"' > $RPM_BUILD_ROOT%{dracutlibdir}/dracut.conf.d/
 %files network
 %{dracutlibdir}/modules.d/01systemd-networkd
 %{dracutlibdir}/modules.d/35connman
+%{dracutlibdir}/modules.d/35network-legacy
 %{dracutlibdir}/modules.d/35network-manager
 %{dracutlibdir}/modules.d/40network
 %{dracutlibdir}/modules.d/90kernel-network-modules
